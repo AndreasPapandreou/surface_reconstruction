@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++11 -g  -rdynamic CMakeFiles/Lab0.dir/src/main.cpp.o  -o Lab0 -lVVRScene -lGeoLib -lMathGeoLib 
