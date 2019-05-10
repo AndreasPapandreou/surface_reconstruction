@@ -6,5 +6,5 @@ CXX_FLAGS =  -std=c++11 -g
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction -I/usr/local/include -I/usr/local/include/VVRScene -I/usr/local/include/GeoLib -I/usr/local/include/MathGeoLib 
+CXX_INCLUDES = -I/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction -I/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/include -I/usr/local/include -I/usr/local/include/opencv4 -I/usr/local/include/VVRScene -I/usr/local/include/GeoLib -I/usr/local/include/MathGeoLib 
 

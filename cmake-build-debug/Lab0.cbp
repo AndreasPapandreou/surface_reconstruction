@@ -35,7 +35,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction"/>
+					<Add directory="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/include"/>
 					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/include/opencv4"/>
 					<Add directory="/usr/local/include/VVRScene"/>
 					<Add directory="/usr/local/include/GeoLib"/>
 					<Add directory="/usr/local/include/MathGeoLib"/>
@@ -62,7 +64,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction"/>
+					<Add directory="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/include"/>
 					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/include/opencv4"/>
 					<Add directory="/usr/local/include/VVRScene"/>
 					<Add directory="/usr/local/include/GeoLib"/>
 					<Add directory="/usr/local/include/MathGeoLib"/>
@@ -92,7 +96,31 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGB.cpp">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGB.h">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGBD.cpp">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGBD.h">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/PointCloud.cpp">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/PointCloud.h">
+			<Option target="Lab0"/>
+		</Unit>
 		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/main.cpp">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/surfaceReconstruction.cpp">
+			<Option target="Lab0"/>
+		</Unit>
+		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/surfaceReconstruction.h">
 			<Option target="Lab0"/>
 		</Unit>
 		<Unit filename="/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/CMakeLists.txt">

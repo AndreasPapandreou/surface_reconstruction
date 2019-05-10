@@ -1,1 +1,1 @@
-/usr/bin/c++   -std=c++11 -g  -rdynamic CMakeFiles/Lab0.dir/src/main.cpp.o  -o Lab0 -lVVRScene -lGeoLib -lMathGeoLib 
+/usr/bin/c++   -std=c++11 -g  -rdynamic CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o CMakeFiles/Lab0.dir/src/PointCloud.cpp.o CMakeFiles/Lab0.dir/src/main.cpp.o CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o  -o Lab0 -lVVRScene -lGeoLib -lMathGeoLib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs 

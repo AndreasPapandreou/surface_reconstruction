@@ -57,9 +57,48 @@ include CMakeFiles/Lab0.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/Lab0.dir/flags.make
 
+CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o: CMakeFiles/Lab0.dir/flags.make
+CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o: ../src/ImageRGB.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o -c /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGB.cpp
+
+CMakeFiles/Lab0.dir/src/ImageRGB.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Lab0.dir/src/ImageRGB.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGB.cpp > CMakeFiles/Lab0.dir/src/ImageRGB.cpp.i
+
+CMakeFiles/Lab0.dir/src/ImageRGB.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Lab0.dir/src/ImageRGB.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGB.cpp -o CMakeFiles/Lab0.dir/src/ImageRGB.cpp.s
+
+CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o: CMakeFiles/Lab0.dir/flags.make
+CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o: ../src/ImageRGBD.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o -c /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGBD.cpp
+
+CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGBD.cpp > CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.i
+
+CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/ImageRGBD.cpp -o CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.s
+
+CMakeFiles/Lab0.dir/src/PointCloud.cpp.o: CMakeFiles/Lab0.dir/flags.make
+CMakeFiles/Lab0.dir/src/PointCloud.cpp.o: ../src/PointCloud.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/Lab0.dir/src/PointCloud.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Lab0.dir/src/PointCloud.cpp.o -c /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/PointCloud.cpp
+
+CMakeFiles/Lab0.dir/src/PointCloud.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Lab0.dir/src/PointCloud.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/PointCloud.cpp > CMakeFiles/Lab0.dir/src/PointCloud.cpp.i
+
+CMakeFiles/Lab0.dir/src/PointCloud.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Lab0.dir/src/PointCloud.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/PointCloud.cpp -o CMakeFiles/Lab0.dir/src/PointCloud.cpp.s
+
 CMakeFiles/Lab0.dir/src/main.cpp.o: CMakeFiles/Lab0.dir/flags.make
 CMakeFiles/Lab0.dir/src/main.cpp.o: ../src/main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/Lab0.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/Lab0.dir/src/main.cpp.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Lab0.dir/src/main.cpp.o -c /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/main.cpp
 
 CMakeFiles/Lab0.dir/src/main.cpp.i: cmake_force
@@ -70,17 +109,38 @@ CMakeFiles/Lab0.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Lab0.dir/src/main.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/main.cpp -o CMakeFiles/Lab0.dir/src/main.cpp.s
 
+CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o: CMakeFiles/Lab0.dir/flags.make
+CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o: ../src/surfaceReconstruction.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o -c /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/surfaceReconstruction.cpp
+
+CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/surfaceReconstruction.cpp > CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.i
+
+CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/src/surfaceReconstruction.cpp -o CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.s
+
 # Object files for target Lab0
 Lab0_OBJECTS = \
-"CMakeFiles/Lab0.dir/src/main.cpp.o"
+"CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o" \
+"CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o" \
+"CMakeFiles/Lab0.dir/src/PointCloud.cpp.o" \
+"CMakeFiles/Lab0.dir/src/main.cpp.o" \
+"CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o"
 
 # External object files for target Lab0
 Lab0_EXTERNAL_OBJECTS =
 
+Lab0: CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o
+Lab0: CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o
+Lab0: CMakeFiles/Lab0.dir/src/PointCloud.cpp.o
 Lab0: CMakeFiles/Lab0.dir/src/main.cpp.o
+Lab0: CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o
 Lab0: CMakeFiles/Lab0.dir/build.make
 Lab0: CMakeFiles/Lab0.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable Lab0"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/andreas/Desktop/MSc/A_ETOS/earino/computational_geometry/project/surfacereconstruction/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable Lab0"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Lab0.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

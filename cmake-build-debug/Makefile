@@ -123,6 +123,87 @@ Lab0/fast:
 	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/build
 .PHONY : Lab0/fast
 
+src/ImageRGB.o: src/ImageRGB.cpp.o
+
+.PHONY : src/ImageRGB.o
+
+# target to build an object file
+src/ImageRGB.cpp.o:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGB.cpp.o
+.PHONY : src/ImageRGB.cpp.o
+
+src/ImageRGB.i: src/ImageRGB.cpp.i
+
+.PHONY : src/ImageRGB.i
+
+# target to preprocess a source file
+src/ImageRGB.cpp.i:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGB.cpp.i
+.PHONY : src/ImageRGB.cpp.i
+
+src/ImageRGB.s: src/ImageRGB.cpp.s
+
+.PHONY : src/ImageRGB.s
+
+# target to generate assembly for a file
+src/ImageRGB.cpp.s:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGB.cpp.s
+.PHONY : src/ImageRGB.cpp.s
+
+src/ImageRGBD.o: src/ImageRGBD.cpp.o
+
+.PHONY : src/ImageRGBD.o
+
+# target to build an object file
+src/ImageRGBD.cpp.o:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.o
+.PHONY : src/ImageRGBD.cpp.o
+
+src/ImageRGBD.i: src/ImageRGBD.cpp.i
+
+.PHONY : src/ImageRGBD.i
+
+# target to preprocess a source file
+src/ImageRGBD.cpp.i:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.i
+.PHONY : src/ImageRGBD.cpp.i
+
+src/ImageRGBD.s: src/ImageRGBD.cpp.s
+
+.PHONY : src/ImageRGBD.s
+
+# target to generate assembly for a file
+src/ImageRGBD.cpp.s:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/ImageRGBD.cpp.s
+.PHONY : src/ImageRGBD.cpp.s
+
+src/PointCloud.o: src/PointCloud.cpp.o
+
+.PHONY : src/PointCloud.o
+
+# target to build an object file
+src/PointCloud.cpp.o:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/PointCloud.cpp.o
+.PHONY : src/PointCloud.cpp.o
+
+src/PointCloud.i: src/PointCloud.cpp.i
+
+.PHONY : src/PointCloud.i
+
+# target to preprocess a source file
+src/PointCloud.cpp.i:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/PointCloud.cpp.i
+.PHONY : src/PointCloud.cpp.i
+
+src/PointCloud.s: src/PointCloud.cpp.s
+
+.PHONY : src/PointCloud.s
+
+# target to generate assembly for a file
+src/PointCloud.cpp.s:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/PointCloud.cpp.s
+.PHONY : src/PointCloud.cpp.s
+
 src/main.o: src/main.cpp.o
 
 .PHONY : src/main.o
@@ -150,6 +231,33 @@ src/main.cpp.s:
 	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/surfaceReconstruction.o: src/surfaceReconstruction.cpp.o
+
+.PHONY : src/surfaceReconstruction.o
+
+# target to build an object file
+src/surfaceReconstruction.cpp.o:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.o
+.PHONY : src/surfaceReconstruction.cpp.o
+
+src/surfaceReconstruction.i: src/surfaceReconstruction.cpp.i
+
+.PHONY : src/surfaceReconstruction.i
+
+# target to preprocess a source file
+src/surfaceReconstruction.cpp.i:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.i
+.PHONY : src/surfaceReconstruction.cpp.i
+
+src/surfaceReconstruction.s: src/surfaceReconstruction.cpp.s
+
+.PHONY : src/surfaceReconstruction.s
+
+# target to generate assembly for a file
+src/surfaceReconstruction.cpp.s:
+	$(MAKE) -f CMakeFiles/Lab0.dir/build.make CMakeFiles/Lab0.dir/src/surfaceReconstruction.cpp.s
+.PHONY : src/surfaceReconstruction.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -159,9 +267,21 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... Lab0"
 	@echo "... edit_cache"
+	@echo "... src/ImageRGB.o"
+	@echo "... src/ImageRGB.i"
+	@echo "... src/ImageRGB.s"
+	@echo "... src/ImageRGBD.o"
+	@echo "... src/ImageRGBD.i"
+	@echo "... src/ImageRGBD.s"
+	@echo "... src/PointCloud.o"
+	@echo "... src/PointCloud.i"
+	@echo "... src/PointCloud.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/surfaceReconstruction.o"
+	@echo "... src/surfaceReconstruction.i"
+	@echo "... src/surfaceReconstruction.s"
 .PHONY : help
 
 

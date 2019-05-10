@@ -8,7 +8,7 @@ file(GLOB FILES_SRC
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(VVRFRAMEWORK_DIR "" CACHE PATH "Location of VVR Framework")
 
-MESSAGE( STATUS "variable is: " ${VVRFRAMEWORK_DIR} )
+#MESSAGE( STATUS "variable is: " ${VVRFRAMEWORK_DIR} )
 
 include_directories(${CMAKE_SOURCE_DIR})
 #include_directories(${VVRFRAMEWORK_DIR}/include)
@@ -17,18 +17,26 @@ include_directories(${CMAKE_SOURCE_DIR})
 #include_directories(${VVRFRAMEWORK_DIR}/include/MathGeoLib)
 
 
+include_directories(include)
 include_directories(/usr/local/include)
+include_directories(/usr/local/include/opencv4)
 include_directories(/usr/local/include/VVRScene)
 include_directories(/usr/local/include/GeoLib)
 include_directories(/usr/local/include/MathGeoLib)
 
-add_executable(${SOLUTIONTITLE} ${FILES_SRC})
+add_executable(${SOLUTIONTITLE} ${FILES_SRC} src/surfaceReconstruction.cpp src/surfaceReconstruction.h src/ImageRGBD.cpp src/ImageRGBD.h src/PointCloud.cpp src/PointCloud.h src/ImageRGB.cpp src/ImageRGB.h)
 target_link_libraries(
         ${SOLUTIONTITLE}
         -lVVRScene
         -lGeoLib
         -lMathGeoLib
+#        ${PROJECT_SOURCE_DIR}/lib/libbasic.so
+        -lopencv_core
+        -lopencv_highgui
+        -lopencv_imgproc
+        -lopencv_imgcodecs
 )
+
 
 #add_custom_command(TARGET ${SOLUTIONTITLE} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory "${VVRFRAMEWORK_DIR}/lib" ${CMAKE_BINARY_DIR}/$<CONFIG>)
 #add_custom_command(TARGET ${SOLUTIONTITLE} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory "${VVRFRAMEWORK_DIR}/GeoLib/$<CONFIG>" ${CMAKE_BINARY_DIR}/$<CONFIG>)
