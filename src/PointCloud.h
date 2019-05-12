@@ -30,6 +30,8 @@ class PointCloud {
         void create(const Mat &image, const Mat &depth_image);
         void getPoints(vector< pair <Point3d,Vec3b>> &points);
         int getImageId(const ImageRGBD &image);
+         Mat rotationMatrix(Vec3d &degree);
+        void rotate(Mat &rotation_mat);
 };
 
 #endif //LAB0_POINTCLOUD_H
