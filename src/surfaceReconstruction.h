@@ -1,60 +1,51 @@
 #ifndef LAB0_SURFACERECONSTRUCTION_H
 #define LAB0_SURFACERECONSTRUCTION_H
 
-#include "opencv2/opencv.hpp"
-#include <VVRScene/canvas.h>
+#include <iostream>
 #include <VVRScene/mesh.h>
-#include <VVRScene/settings.h>
 #include <VVRScene/utils.h>
-#include <MathGeoLib.h>
-#include "ImageRGB.h"
-#include "ImageRGBD.h"
 #include "PointCloud.h"
-
-#define FLAG_SHOW_AXES       1
-#define FLAG_SHOW_WIRE       2
-#define FLAG_SHOW_SOLID      4
-#define FLAG_SHOW_NORMALS    8
-#define FLAG_SHOW_PLANE     16
-#define FLAG_SHOW_AABB      32
+#include "ImageRGB.h"
 
 using namespace std;
 using namespace vvr;
-using namespace cv;
 
 class surfaceReconstruction : public vvr::Scene {
+    public:
+        surfaceReconstruction(int &index);
 
-public:
-    surfaceReconstruction();
-    const char* getName() const { return "Surface Reconstruction"; }
-//    void keyEvent(unsigned char key, bool up, int modif) override;
-//    void arrowEvent(vvr::ArrowDir dir, int modif) override;
+    private:
+        void initialize(int &index);
+        void draw() override;
+        void reset() override;
+        void resize() override;
+        void createMesh(const vector<pair<Point3d, Vec3b>> &image_points, Mesh &mesh);
+        void createGui();
+        void showFrames(int index);
 
-private:
-    void run();
-//    void matToVector(Mat &matrix_image, vector<float> &vector_image);
-    void createMesh(const vector< pair <Point3d,Vec3b>> &image_points, Mesh &mesh);
-    void draw() override;
-    void drawMesh(const vector<Point3d> &points);
-    void reset() override;
-    void resize() override;
-//    void rotateX3D(PointCloud &pcloud, float angle);
-//    void rotateX3D(Mesh &mesh, float angle);
-//    void rotateY3D(PointCloud &pcloud, float angle);
-//    void rotateY3D(Mesh &mesh, float angle);
-//    void rotateZ3D(PointCloud &pcloud, float angle);
+        static void change_frame(int x, void*);
+        static void drawFrame(int index, void* object);
+        static void drawLeftFrame(int x, void*);
+        static void drawRightFrame(int x, void*);
 
+        Mat getFrame(int index);
+        void getDepthImage(int frame_index);
+        void getImage(int frame_index);
 
-private:
-    int m_style_flag;
-    float m_plane_d;
-    vvr::Colour m_obj_col;
-    vvr::Mesh m_model_original, m_model;
-    math::vec m_center_mass;
-    math::Plane m_plane;
-    PointCloud* m_pClouds;
-    Mesh m_mesh;
-    vector< pair <Point3d,Vec3b>> m_points;
+    private:
+        Mat depth_mat, image_mat, r_frame, l_frame;
+        vvr::Colour m_obj_col;
+        math::Plane m_plane;
+        PointCloud pcloud;
+        Mesh m_mesh;
+
+        int l_frame_index, r_frame_index;
+        int num_images;
+        int slider_value{1};
+        float m_plane_d;
+
+        string stereo_dir = "../data/";
+        string image_prefix;
 };
 
 #endif //LAB0_SURFACERECONSTRUCTION_H
