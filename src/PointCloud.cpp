@@ -28,9 +28,9 @@ void PointCloud::create(const Mat &image, const Mat &depth_image)
             point.y = ygrid.at<short>(i,j)*depth_image.at<unsigned short>(i,j)/camera.constant/camera.mm_per_m;
             point.z = depth_image.at<unsigned short>(i,j)/camera.mm_per_m;
 //            if (point.x != 0 && point.y != 0 && point.z != 0) {
-            if (point.z != 0) {
+//            if (point.z != 0) {
                 m_points.emplace_back(point, image.at<Vec3b>(i,j));
-            }
+//            }
         }
     }
 }
@@ -44,6 +44,11 @@ void PointCloud::create(const Mat &image, const Mat &depth_image)
 void PointCloud::getPoints(vector< pair <Point3d,Vec3b>> &points)
 {
     points = m_points;
+}
+
+void PointCloud::clearPoints()
+{
+    m_points.clear();
 }
 
 /* ------------------------------------------------------------------------------
@@ -71,19 +76,22 @@ Mat PointCloud::rotationMatrix(Vec3d &degree)
     radian[2] = degree[2]*M_PI/180.; // z_axis
 
     // calculate rotation about x axis
-    Mat rotation_x = (Mat_<double>(3,3) << 1,       0,                 0,
-                                    0,       cos(radian[0]),    -sin(radian[0]),
-                                    0,       sin(radian[0]),    cos(radian[0]));
+    Mat rotation_x = (Mat_<double>(3,3) <<
+            1, 0, 0,
+            0, cos(radian[0]), -sin(radian[0]),
+            0, sin(radian[0]), cos(radian[0]));
 
     // calculate rotation about y axis
-    Mat rotation_y = (Mat_<double>(3,3) << cos(radian[1]),    0,      sin(radian[1]),
-                                    0,                 1,      0,
-                                    -sin(radian[1]),   0,      cos(radian[1]));
+    Mat rotation_y = (Mat_<double>(3,3) <<
+            cos(radian[1]), 0, sin(radian[1]),
+            0, 1, 0,
+            -sin(radian[1]), 0, cos(radian[1]));
 
     // calculate rotation about z axis
-    Mat rotation_z = (Mat_<double>(3,3) << cos(radian[2]),    -sin(radian[2]),      0,
-                                    sin(radian[2]),    cos(radian[2]),       0,
-                                    0,                 0,                    1);
+    Mat rotation_z = (Mat_<double>(3,3) <<
+            cos(radian[2]), -sin(radian[2]), 0,
+            sin(radian[2]), cos(radian[2]), 0,
+            0, 0, 1);
 
     // get the final rotation matrix
     Mat rotation = rotation_z * rotation_y * rotation_x;

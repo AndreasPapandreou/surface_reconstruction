@@ -1,15 +1,7 @@
 #ifndef LAB0_POINTCLOUD_H
 #define LAB0_POINTCLOUD_H
 
-#include "opencv2/opencv.hpp"
-#include <VVRScene/canvas.h>
-#include <VVRScene/mesh.h>
-#include <VVRScene/settings.h>
-#include <VVRScene/utils.h>
 #include "ImageRGBD.h"
-
-using namespace cv;
-using namespace vvr;
 
 struct CameraConstants {
     int topLeft[2]{1,1}; // the position of the top-left corner of depth in the original depth image
@@ -29,9 +21,12 @@ class PointCloud {
         PointCloud() {};
         void create(const Mat &image, const Mat &depth_image);
         void getPoints(vector< pair <Point3d,Vec3b>> &points);
+        void clearPoints();
         int getImageId(const ImageRGBD &image);
-         Mat rotationMatrix(Vec3d &degree);
+        Mat rotationMatrix(Vec3d &degree);
         void rotate(Mat &rotation_mat);
+
+    friend class surfaceReconstruction;
 };
 
 #endif //LAB0_POINTCLOUD_H
