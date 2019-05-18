@@ -1,4 +1,5 @@
 #include "PointCloud.h"
+#include "ImageRGB.h"
 
 /* ------------------------------------------------------------------------------
  * Inputs       : An image in Mat and its depth one version in Mat
@@ -68,7 +69,7 @@ int PointCloud::getImageId(const ImageRGBD &image)
  * Return       : The rotation matrix
  * ------------------------------------------------------------------------------
 */
-Mat PointCloud::rotationMatrix(Vec3d &degree)
+Mat PointCloud::rotationMatrix(const Vec3d &degree)
 {
     Vec3d radian;
     radian[0] = degree[0]*M_PI/180.; // x_axis
@@ -105,7 +106,7 @@ Mat PointCloud::rotationMatrix(Vec3d &degree)
  * Return       : -
  * ------------------------------------------------------------------------------
 */
-void PointCloud::rotate(Mat &rotation_mat) {
+void PointCloud::rotate(const Mat &rotation_mat) {
     for (auto &point : m_points) {
         Mat current_point = (Mat_<double>(3,1) << point.first.x, point.first.y, point.first.z);
         Mat result = rotation_mat*current_point;
@@ -114,3 +115,146 @@ void PointCloud::rotate(Mat &rotation_mat) {
         point.first.z = result.at<double>(2);
     }
 }
+
+void PointCloud::findAdjacentPoints(const Mat &l_frame, const Mat &r_frame, Mat &adjacency) {
+/*
+    //-> read first column
+    for (int i=0; i<l_frame.cols; i++) {
+        for (int j=0; j<l_frame.rows; j++) {
+            if(i==0)
+                l_frame.at<unsigned short>(j,i)
+        }
+    }
+*/
+
+    int window_size{50};
+    int flag{1};
+    int top_row, top_col, width, height;
+
+    // how many pixels to slide the window in each direction (100 pixels aristera, 100 deksia, 100 panw kai 100 katw apo to trexwn (i,j))
+    int slide{150};
+
+    for (int col=0; col<r_frame.cols - window_size; col++) {
+        for (int row=0; row<r_frame.rows - window_size; row++) {
+
+//            /*
+            if (flag++ == 58950) {
+                cv::Rect img_roi(col, row, window_size, window_size);
+                Mat img_template = l_frame(img_roi);
+
+                top_col = col-slide;
+                top_row = row-slide;
+                width = 2*slide;
+                height = 2*slide;
+
+                validate(top_col, top_row, width, height);
+
+                cv::Rect cube_roi(top_col, top_row, width, height);
+                Mat img_cube = r_frame(cube_roi);
+
+                Mat result;
+                matchTemplate(img_cube, img_template, result, 5);
+
+                cv::Point best_match;
+                minMaxLoc(result, nullptr, nullptr, nullptr, &best_match);
+
+                namedWindow("img_template", WINDOW_NORMAL);
+                imshow("img_template", img_template);
+                namedWindow("img_cube", WINDOW_NORMAL);
+                imshow("img_cube", img_cube);
+                cout << "template size = " << img_template.size << endl;
+                cout << "img_cube size = " << img_cube.size << endl;
+
+                Point pt_old =  Point(col, row);
+//                Point pt_new =  Point(best_match.x, best_match.y);
+                Point pt_new =  Point(best_match.x+top_col, best_match.y+top_row);
+
+                Mat my_l_depth_mat, my_r_depth_mat;
+                ImageRGB depth_image("../data/meeting_small_1/meeting_small_1_1.png");
+                depth_image.convertToMat();
+                depth_image.getMat(my_l_depth_mat);
+                ImageRGB depth_image2("../data/meeting_small_1/meeting_small_1_2.png");
+                depth_image2.convertToMat();
+                depth_image2.getMat(my_r_depth_mat);
+
+                namedWindow("test_left", WINDOW_NORMAL);
+                namedWindow("test_right", WINDOW_NORMAL);
+
+                circle( my_l_depth_mat, pt_old, 1, Scalar( 0, 0, 255 ), FILLED, LINE_8 );
+                circle( my_r_depth_mat, pt_new, 1, Scalar( 0, 0, 255 ), FILLED, LINE_8 );
+
+                imshow("test_left", my_l_depth_mat);
+                imshow("test_right", my_r_depth_mat);
+
+                cout << "old x = " << col << endl;
+                cout << "old y = " << row << endl;
+                cout << "new x = " << best_match.x << endl;
+                cout << "new y = " << best_match.y << endl;
+            }
+//            */
+
+        }
+    }
+}
+
+void PointCloud::validate(int &top_col, int &top_row, int &width, int &height) {
+    if (top_col < 0) {
+        width += top_col;
+        top_col = 0;
+    }
+
+    if (top_row < 0) {
+        height += top_row;
+        top_row = 0;
+    }
+
+    if ((width + top_col) > 640)
+        width = 640 - top_col;
+
+    if ((height + top_row) > 480)
+        height = 480 - top_row;
+}
+
+/*
+//    double padding = (double)window_size/(2.0*100.0);
+void PointCloud::zeroPad(const Mat &image, const double size, Mat &new_image) {
+
+    // We give them a value of size% the size of src.
+    int top = (int) (size*image.rows);
+    int bottom = (int) (size*image.rows);
+    int left = (int) (size*image.cols);
+    int right = (int) (size*image.cols);
+
+    copyMakeBorder(image, new_image, top, bottom, left, right, BORDER_CONSTANT, 0);
+
+//    namedWindow("before padding", WINDOW_NORMAL);
+//    imshow("before padding", image);
+//    cout << "before size = " << image.size << endl;
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

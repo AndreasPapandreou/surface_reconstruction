@@ -23,8 +23,11 @@ class PointCloud {
         void getPoints(vector< pair <Point3d,Vec3b>> &points);
         void clearPoints();
         int getImageId(const ImageRGBD &image);
-        Mat rotationMatrix(Vec3d &degree);
-        void rotate(Mat &rotation_mat);
+        Mat rotationMatrix(const Vec3d &degree);
+        void rotate(const Mat &rotation_mat);
+        void findAdjacentPoints(const Mat &l_frame, const Mat &r_frame, Mat &adjacency);
+        void validate(int &top_col, int &top_row, int &widht, int &height);
+//        void zeroPad(const Mat &image, const double size, Mat &new_image);
 
     friend class surfaceReconstruction;
 };
