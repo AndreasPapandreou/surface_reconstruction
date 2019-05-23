@@ -8,17 +8,23 @@ using namespace std;
 namespace generic {
 
     enum DatasetType {
-        meeting_small_1 = 1
+        meeting_small_1 = 1,
+        desk_1 = 2
     };
 
     enum DatasetSize {
-        meeting_small_1_size = 180
+        meeting_small_1_size = 180,
+        desk_1_size = 98
     };
+
+    string stereo_dir = "../data/";
 
     DatasetType convertToDatasetType(const int &type) {
         switch (type) {
             case 0 :
                 return meeting_small_1;
+            case 1 :
+                return desk_1;
             default:break;
         }
     }
@@ -27,6 +33,8 @@ namespace generic {
         switch (type) {
             case 0 :
                 return meeting_small_1_size;
+            case 1 :
+                return desk_1_size;
             default:break;
         }
     }
@@ -35,6 +43,8 @@ namespace generic {
         switch (type) {
             case meeting_small_1 :
                 return "meeting_small_1";
+            case desk_1 :
+                return "desk_1";
             default:break;
         }
     }

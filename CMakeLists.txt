@@ -41,6 +41,7 @@ include_directories(/usr/local/include/opencv4)
 include_directories(/usr/local/include/VVRScene)
 include_directories(/usr/local/include/GeoLib)
 include_directories(/usr/local/include/MathGeoLib)
+include_directories(/usr/include/eigen3)
 include_directories(/home/andreas/Libraries/Qt/5.12.0/gcc_64/lib/cmake)
 
 add_executable(${SOLUTIONTITLE} ${FILES_SRC} src/surfaceReconstruction.cpp src/surfaceReconstruction.h src/ImageRGBD.cpp src/ImageRGBD.h src/PointCloud.cpp src/PointCloud.h src/ImageRGB.cpp src/ImageRGB.h src/generic.h)

@@ -27,6 +27,8 @@ class surfaceReconstruction : public vvr::Scene {
         static void drawFrame(int index, void* object);
         static void drawLeftFrame(int x, void*);
         static void drawRightFrame(int x, void*);
+        static void alignFrames(int x, void*);
+        void drawAdjacentPoints();
 
         Mat getFrame(int index);
         void getDepthImage(int frame_index);
@@ -34,6 +36,7 @@ class surfaceReconstruction : public vvr::Scene {
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;
+        vector< pair <Point3d,Vec3b>> l_points, r_points;
         vvr::Colour m_obj_col;
         math::Plane m_plane;
         PointCloud pcloud;
@@ -43,8 +46,8 @@ class surfaceReconstruction : public vvr::Scene {
         int num_images;
         int slider_value{1};
         float m_plane_d;
+        bool m_flag;
 
-        string stereo_dir = "../data/";
         string image_prefix;
 };
 
