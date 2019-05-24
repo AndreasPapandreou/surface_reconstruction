@@ -33,6 +33,7 @@ class surfaceReconstruction : public vvr::Scene {
         Mat getFrame(int index);
         void getDepthImage(int frame_index);
         void getImage(int frame_index);
+        vector<Point3d> getFirstElements(vector< pair <Point3d,Vec3b>> &paired_data);
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;

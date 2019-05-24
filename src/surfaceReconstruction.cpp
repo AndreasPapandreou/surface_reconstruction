@@ -142,10 +142,71 @@ void surfaceReconstruction::drawFrame(int index, void* object) {
 
     myClass->createMesh(myClass->pcloud.m_points, myClass->m_mesh);
     myClass->m_flag = false;
+
+    VecArray pts;
+    pts.emplace_back(vec(myClass->pcloud.m_points.at(0).first.x, myClass->pcloud.m_points.at(0).first.y, myClass->pcloud.m_points.at(0).first.z));
 }
 
 void surfaceReconstruction::alignFrames(int index, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->pcloud.clearPoints();
+    myClass->m_mesh.getVertices().clear();
 
+    myClass->getImage(myClass->l_frame_index);
+    myClass->getDepthImage(myClass->l_frame_index);
+    const Mat l_frame_rgb = myClass->image_mat;
+    const Mat l_frame_rgbd = myClass->depth_mat;
+    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
+
+    Vec3d degree = {180.0, 0.0, 0.0};
+    Mat rotation = myClass->pcloud.rotationMatrix(degree);
+    myClass->pcloud.rotate(rotation);
+    vector< pair <Point3d,Vec3b>> l_initial_points = myClass->pcloud.m_points;
+
+    myClass->pcloud.clearPoints();
+
+    myClass->getImage(myClass->r_frame_index);
+    myClass->getDepthImage(myClass->r_frame_index);
+    const Mat r_frame_rgb = myClass->image_mat;
+    const Mat r_frame_rgbd = myClass->depth_mat;
+    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
+    myClass->pcloud.rotate(rotation);
+    vector< pair <Point3d,Vec3b>> r_initial_points = myClass->pcloud.m_points;
+
+//    /*
+    vector<Point3d> l_initial_first_points = myClass->getFirstElements(l_initial_points);
+    int counter{0};
+    while(counter < 10) {
+        cout << endl;
+        cout << "counter = " << counter << endl << endl;
+
+        vector<Point3d> nearestPoints;
+        vector<Point3d> r_initial_first_points = myClass->getFirstElements(r_initial_points);
+        myClass->pcloud.kNearest(l_initial_first_points, r_initial_first_points, nearestPoints, 1);
+
+        pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
+        R_t = myClass->pcloud.computeRigidTransform(l_initial_first_points, nearestPoints);
+
+        myClass->pcloud.tranformPoints(R_t, r_initial_first_points);
+
+        myClass->r_points.clear();
+        myClass->l_points = l_initial_points;
+        for (int i=0; i<r_initial_first_points.size(); i++) {
+            myClass->r_points.emplace_back(r_initial_first_points.at(i), r_initial_points.at(i).second);
+        }
+
+        r_initial_points = myClass->r_points;
+
+        vector<Point3d> test;
+        for (int i=0; i<nearestPoints.size(); i++) {
+            test.emplace_back(l_initial_first_points.at(i));
+        }
+        double error = myClass->pcloud.computeError(test, nearestPoints);
+        cout << "error = " << error << endl;
+        counter++;
+    }
+//    */
+    myClass->m_flag = true;
 }
 
 //void surfaceReconstruction::alignFrames(int index, void* object) {
@@ -215,6 +276,14 @@ void surfaceReconstruction::getImage(int frame_index) {
     image.getMat(image_mat);
 }
 
+vector<Point3d> surfaceReconstruction::getFirstElements(vector< pair <Point3d,Vec3b>> &paired_data) {
+    vector<Point3d> data;
+    for (int i=0; i<paired_data.size(); i++) {
+        data.emplace_back(paired_data.at(i).first);
+    }
+    return data;
+}
+
 void surfaceReconstruction::reset()
 {
     Scene::reset();
@@ -230,21 +299,21 @@ void surfaceReconstruction::resize()
 }
 
 void surfaceReconstruction::draw() {
-//    if (m_flag) {
-//        drawAdjacentPoints();
+    if (m_flag) {
+        drawAdjacentPoints();
 //        m_flag = false;
-//    }
-//    else {
-        int counter{0};
-        for (auto &i : m_mesh.getVertices()) {
-            if (i.z != 0) {
-                Point3D(i.x, i.y, i.z,
-                        Colour(pcloud.m_points.at((counter)).second[2], pcloud.m_points.at(counter).second[1],
-                               pcloud.m_points.at(counter).second[0])).draw();
-            }
-            counter++;
-        }
-//    }
+    }
+    else {
+//        int counter{0};
+//        for (auto &i : m_mesh.getVertices()) {
+//            if (i.z != 0) {
+//                Point3D(i.x, i.y, i.z,
+//                        Colour(pcloud.m_points.at((counter)).second[2], pcloud.m_points.at(counter).second[1],
+//                               pcloud.m_points.at(counter).second[0])).draw();
+//            }
+//            counter++;
+//        }
+    }
 }
 
 void surfaceReconstruction::drawAdjacentPoints() {
@@ -262,11 +331,11 @@ void surfaceReconstruction::drawAdjacentPoints() {
     cout << "new_r_points size = " << r_points.size() << endl;
 
     Point3d not_p(0,0,0);
-    for (int i=0; i<l_points.size(); i++) {
+    for (int i=0; i<r_points.size(); i++) {
 //    for (int i=0; i<50*10; i++) {
 //        if (l_points[i].first == not_p || r_points[i].first == not_p) {
-        if (l_points[i].first != not_p) {
-            if (r_points[i].first != not_p) {
+//        if (l_points[i].first != not_p) {
+//            if (r_points[i].first != not_p) {
             Point3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
                     Colour(l_points.at((i)).second[2], l_points.at((i)).second[1], l_points.at((i)).second[0])).draw();
             Point3D(r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
@@ -276,7 +345,7 @@ void surfaceReconstruction::drawAdjacentPoints() {
 //                LineSeg3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
 //                      r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
 //                      Colour::yellow).draw();
-            }
-        }
+//            }
+//        }
     }
 }

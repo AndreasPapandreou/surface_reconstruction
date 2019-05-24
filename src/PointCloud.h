@@ -2,7 +2,16 @@
 #define LAB0_POINTCLOUD_H
 
 #include "ImageRGBD.h"
+#include "kdTree.h"
+#include <VVRScene/mesh.h>
+#include <VVRScene/utils.h>
 #include <Eigen/SVD>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/Geometry>
+#include <random>
+
+using namespace vvr;
 
 struct CameraConstants {
     int topLeft[2]{1,1}; // the position of the top-left corner of depth in the original depth image
@@ -33,10 +42,13 @@ class PointCloud {
 //        void zeroPad(const Mat &image, const double size, Mat &new_image);
         pair<Eigen::Matrix3d, Eigen::Vector3d> computeRigidTransform(const vector<Point3d> &l_points, const vector<Point3d> &r_points);
         void convertToEigenMat(const vector<Point3d> &l_points, const vector<Point3d> &r_points, Eigen::MatrixXd &l_mat, Eigen::MatrixXd &r_mat);
-        void convertToEigenMat(const vector<Point3d> points, Eigen::MatrixXd &mat);
+        void convertToEigenMat(const vector<Point3d> &points, Eigen::MatrixXd &mat);
         void convertToVector(const Eigen::MatrixXd &mat, vector<Point3d> &points);
         Eigen::Vector3d convertToEigenVector3d(const Point3d &point);
         void tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points);
+        void kNearest(const vector<Point3d> &src, const vector<Point3d> &dst, vector<Point3d> &nearestPoints, int kn);
+        Point3d convertToPoint3d(const vec &point);
+        double computeError(const vector<Point3d> &src, const vector<Point3d> &dst);
 
     friend class surfaceReconstruction;
 };
