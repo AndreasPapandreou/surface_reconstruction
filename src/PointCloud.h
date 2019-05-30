@@ -44,11 +44,6 @@ class PointCloud {
         int getImageId(const ImageRGBD &image);
 
         pair<Point3d,Vec3b> convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point);
-        void convertToEigenMat(const vector<Point3d> &l_points, const vector<Point3d> &r_points, Eigen::MatrixXd &l_mat, Eigen::MatrixXd &r_mat);
-        void convertToEigenMat(const vector<Point3d> &points, Eigen::MatrixXd &mat);
-        void convertToVector(const Eigen::MatrixXd &mat, vector<Point3d> &points);
-        Eigen::Vector3d convertToEigenVector3d(const Point3d &point);
-        Point3d convertToPoint3d(const vec &point);
 
 //        void findCorrespondingPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points);
 //        void findAdjacentPoints(const Mat &l_frame_rgb, const Mat &l_frame_rgbd);

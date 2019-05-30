@@ -1,4 +1,5 @@
 #include "PointCloud.h"
+#include "dataTypes.h"
 
 /* ------------------------------------------------------------------------------
  * Inputs       : An image in Mat and its depth one version in Mat
@@ -387,7 +388,7 @@ void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst
             memset(nearests, NULL, kn * sizeof(KDNode*));
 
             dst_KDTree->kNearest(j, src_pts.at(i), dst_KDTree->root(), nearests, &dist);
-            nearestPoints.emplace_back(convertToPoint3d((*nearests)->split_point));
+            nearestPoints.emplace_back(dataTypes::convertToPoint3d((*nearests)->split_point));
         }
     }
 
@@ -437,7 +438,7 @@ pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const v
     }
 
     Eigen::MatrixXd X(3,size), Y(3,size);
-    convertToEigenMat(dst_centered_points, src_centered_points, X, Y);
+    dataTypes::convertToEigenMat(dst_centered_points, src_centered_points, X, Y);
 
     // compute the covariance matrix
     Eigen::Matrix3d S = X*Y.transpose();
@@ -466,63 +467,16 @@ pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const v
     Eigen::Matrix3d R = V*diag_mat*U.transpose();
 
     // compute translation vector
-    Eigen::Vector3d t = convertToEigenVector3d(src_center) - R*convertToEigenVector3d(dst_center);
+    Eigen::Vector3d t = dataTypes::convertToEigenVector3d(src_center) - R*dataTypes::convertToEigenVector3d(dst_center);
 
     return pair<Eigen::Matrix3d, Eigen::Vector3d>(R, t);
-}
-
-void PointCloud::convertToEigenMat(const vector<Point3d> &l_points, const vector<Point3d> &r_points, Eigen::MatrixXd &l_mat, Eigen::MatrixXd &r_mat) {
-    int size = static_cast<int>(l_points.size());
-    for (int i=0; i<size; i++) {
-        l_mat(0,i) = l_points.at(i).x;
-        l_mat(1,i) = l_points.at(i).y;
-        l_mat(2,i) = l_points.at(i).z;
-
-        r_mat(0,i) = r_points.at(i).x;
-        r_mat(1,i) = r_points.at(i).y;
-        r_mat(2,i) = r_points.at(i).z;
-    }
-}
-
-void PointCloud::convertToEigenMat(const vector<Point3d> &points, Eigen::MatrixXd &mat) {
-    int size = static_cast<int>(points.size());
-    for (int i=0; i<size; i++) {
-        mat(0,i) = points.at(i).x;
-        mat(1,i) = points.at(i).y;
-        mat(2,i) = points.at(i).z;
-    }
-}
-
-void PointCloud::convertToVector(const Eigen::MatrixXd &mat, vector<Point3d> &points) {
-    int size = static_cast<int>(points.size());
-    for (int i=0; i<size; i++) {
-        points.at(i).x = mat(0,i);
-        points.at(i).y = mat(1,i);
-        points.at(i).z = mat(2,i);
-    }
-}
-
-Eigen::Vector3d PointCloud::convertToEigenVector3d(const Point3d &point) {
-    Eigen::Vector3d res;
-    res(0,0) = point.x;
-    res(1,0) = point.y;
-    res(2,0) = point.z;
-    return res;
-}
-
-Point3d PointCloud::convertToPoint3d(const vec &point) {
-    Point3d point3d;
-    point3d.x = point.x;
-    point3d.y = point.y;
-    point3d.z = point.z;
-    return point3d;
 }
 
 void PointCloud::tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points) {
     int size = static_cast<int>(points.size());
 
     Eigen::MatrixXd mat(3,size);
-    convertToEigenMat(points, mat);
+    dataTypes::convertToEigenMat(points, mat);
 
     Eigen::MatrixXd new_points(3,size);
     new_points = R_t.first*mat;
@@ -531,7 +485,7 @@ void PointCloud::tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vec
         new_points(1,i) += R_t.second(1,0);
         new_points(2,i) += R_t.second(2,0);
     }
-    convertToVector(new_points, points);
+    dataTypes::convertToVector(new_points, points);
 }
 
 double PointCloud::computeError(const vector<Point3d> &src, const vector<Point3d> &dst) {

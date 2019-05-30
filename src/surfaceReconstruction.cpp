@@ -1,5 +1,5 @@
 #include "surfaceReconstruction.h"
-#include "generic.h"
+#include "dataset.h"
 
 using namespace std;
 using namespace vvr;
