@@ -18,6 +18,9 @@ void surfaceReconstruction::initialize(int &index) {
     m_flag = false;
 }
 
+//!---------------------------------------------------------------------------------------------------------------------
+//! gui functions
+//!---------------------------------------------------------------------------------------------------------------------
 void surfaceReconstruction::createGui() {
     //! Load settings.
     vvr::Shape::DEF_LINE_WIDTH = 4;
@@ -32,33 +35,10 @@ void surfaceReconstruction::createGui() {
     createButton("Draw left frame", drawLeftFrame, this, QT_PUSH_BUTTON, true);
     createButton("Draw right frame", drawRightFrame, this, QT_PUSH_BUTTON, true);
     createButton("Align frames", alignFrames, this, QT_PUSH_BUTTON, true);
+    createButton("Align frames no knn", alignFramesNoKnn, this, QT_PUSH_BUTTON, true);
 
     // initialize with the two first frames
     showFrames(1);
-
-    // test
-//    Mat my_l_image, my_r_image, my_l_depth_image, my_r_depth_image;
-////    ImageRGB depth_image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(l_frame_index) + ".png");
-//    ImageRGB l_image("../data/meeting_small_1/meeting_small_1_28.png");
-//    l_image.convertToMat();
-//    l_image.getMat(my_l_image);
-//    ImageRGB l_image_depth("../data/meeting_small_1/meeting_small_1_28_depth.png");
-//    l_image_depth.convertToMat();
-//    l_image_depth.getMat(my_l_depth_image);
-//
-////    ImageRGB new_depth_image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(r_frame_index) + ".png");
-//    ImageRGB r_image("../data/meeting_small_1/meeting_small_1_29.png");
-//    r_image.convertToMat();
-//    r_image.getMat(my_r_image);
-//    ImageRGB r_image_depth("../data/meeting_small_1/meeting_small_1_29_depth.png");
-//    r_image_depth.convertToMat();
-//    r_image_depth.getMat(my_r_depth_image);
-
-//    vector<pair<Point3d, Vec3b>> l_frame_points, r_frame_points;
-//    pcloud.findAdjacentPoints(my_l_image, my_r_image);
-//    pcloud.findAdjacentPoints(my_l_image, my_l_depth_image, my_r_image, my_r_depth_image, l_frame_points, r_frame_points);
-    // test
-
 }
 
 void surfaceReconstruction::showFrames(int index) {
@@ -96,19 +76,12 @@ void surfaceReconstruction::showFrames(int index) {
     waitKey(1);
 }
 
-Mat surfaceReconstruction::getFrame(int index) {
-    ostringstream frame_to_stream; // declaring output string stream
-    frame_to_stream << index; // frame_to_stream a number as a stream into output
-    string frame_to_string = frame_to_stream.str(); // the str() coverts number into string
-    return imread(generic::stereo_dir + "/" + image_prefix + "_" + frame_to_string + ".png");
-}
-
-void surfaceReconstruction::createMesh(const vector< pair <Point3d,Vec3b>> &image_points, Mesh &mesh) {
-    vector<vec> &mesh_vertices = m_mesh.getVertices();
-    for (auto &point : image_points) {
-        mesh_vertices.emplace_back(point.first.x, point.first.y, point.first.z);
-    }
-}
+//void surfaceReconstruction::createMesh(const vector< pair <Point3d,Vec3b>> &image_points, Mesh &mesh) {
+//    vector<vec> &mesh_vertices = m_mesh.getVertices();
+//    for (auto &point : image_points) {
+//        mesh_vertices.emplace_back(point.first.x, point.first.y, point.first.z);
+//    }
+//}
 
 void surfaceReconstruction::change_frame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
@@ -129,59 +102,31 @@ void surfaceReconstruction::drawRightFrame(int x, void* object) {
 
 void surfaceReconstruction::drawFrame(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
-    myClass->getDepthImage(index);
-    myClass->getImage(index);
-
     myClass->pcloud.clearPoints();
-    myClass->m_mesh.getVertices().clear();
-
-    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
-    Vec3d degree = {180.0, 0.0, 0.0};
-    Mat rotation = myClass->pcloud.rotationMatrix(degree);
-    myClass->pcloud.rotate(rotation);
-
-    myClass->createMesh(myClass->pcloud.m_points, myClass->m_mesh);
+    myClass->getPointCLoud(myClass->l_points, index);
     myClass->m_flag = false;
-
-    VecArray pts;
-    pts.emplace_back(vec(myClass->pcloud.m_points.at(0).first.x, myClass->pcloud.m_points.at(0).first.y, myClass->pcloud.m_points.at(0).first.z));
 }
 
 void surfaceReconstruction::alignFrames(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->pcloud.clearPoints();
-    myClass->m_mesh.getVertices().clear();
 
-    myClass->getImage(myClass->l_frame_index);
-    myClass->getDepthImage(myClass->l_frame_index);
-    const Mat l_frame_rgb = myClass->image_mat;
-    const Mat l_frame_rgbd = myClass->depth_mat;
-    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
-
-    Vec3d degree = {180.0, 0.0, 0.0};
-    Mat rotation = myClass->pcloud.rotationMatrix(degree);
-    myClass->pcloud.rotate(rotation);
-    vector< pair <Point3d,Vec3b>> l_initial_points = myClass->pcloud.m_points;
+    vector< pair <Point3d,Vec3b>> l_initial_points;
+    myClass->getPointCLoud(l_initial_points, myClass->l_frame_index);
 
     myClass->pcloud.clearPoints();
 
-    myClass->getImage(myClass->r_frame_index);
-    myClass->getDepthImage(myClass->r_frame_index);
-    const Mat r_frame_rgb = myClass->image_mat;
-    const Mat r_frame_rgbd = myClass->depth_mat;
-    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
-    myClass->pcloud.rotate(rotation);
-    vector< pair <Point3d,Vec3b>> r_initial_points = myClass->pcloud.m_points;
+    vector< pair <Point3d,Vec3b>> r_initial_points;
+    myClass->getPointCLoud(r_initial_points, myClass->r_frame_index);
 
-//    /*
-    vector<Point3d> l_initial_first_points = myClass->getFirstElements(l_initial_points);
+    vector<Point3d> l_initial_first_points = myClass->getFirstData(l_initial_points);
     int counter{0};
-    while(counter < 10) {
+    while(counter < 5) {
         cout << endl;
-        cout << "counter = " << counter << endl << endl;
+        cout << "iteration = " << counter << endl;
 
         vector<Point3d> nearestPoints;
-        vector<Point3d> r_initial_first_points = myClass->getFirstElements(r_initial_points);
+        vector<Point3d> r_initial_first_points = myClass->getFirstData(r_initial_points);
         myClass->pcloud.kNearest(l_initial_first_points, r_initial_first_points, nearestPoints, 1);
 
         pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
@@ -205,9 +150,33 @@ void surfaceReconstruction::alignFrames(int index, void* object) {
         cout << "error = " << error << endl;
         counter++;
     }
-//    */
     myClass->m_flag = true;
 }
+
+void surfaceReconstruction::alignFramesNoKnn(int index, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->pcloud.clearPoints();
+    myClass->getPointCLoud(myClass->l_points, myClass->l_frame_index);
+
+    myClass->pcloud.clearPoints();
+    myClass->getPointCLoud(myClass->r_points, myClass->r_frame_index);
+    myClass->m_flag = true;
+}
+
+void surfaceReconstruction::reset()
+{
+    Scene::reset();
+    m_plane_d = 0;
+    m_plane = Plane(vec(0, 1, 1).Normalized(), m_plane_d);
+}
+
+void surfaceReconstruction::resize()
+{
+    static bool first_pass = true;
+    if (first_pass)
+        first_pass = false;
+}
+//!---------------------------------------------------------------------------------------------------------------------
 
 //void surfaceReconstruction::alignFrames(int index, void* object) {
 //    auto * myClass = (surfaceReconstruction*) object;
@@ -264,6 +233,9 @@ void surfaceReconstruction::alignFrames(int index, void* object) {
 //    myClass->m_flag = true;
 //}
 
+//!---------------------------------------------------------------------------------------------------------------------
+//! getter functions
+//!---------------------------------------------------------------------------------------------------------------------
 void surfaceReconstruction::getDepthImage(int frame_index) {
     ImageRGBD depth_image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(frame_index) + "_depth.png");
     depth_image.convertToMat();
@@ -276,76 +248,60 @@ void surfaceReconstruction::getImage(int frame_index) {
     image.getMat(image_mat);
 }
 
-vector<Point3d> surfaceReconstruction::getFirstElements(vector< pair <Point3d,Vec3b>> &paired_data) {
+vector<Point3d> surfaceReconstruction::getFirstData(vector< pair <Point3d,Vec3b>> &paired_data) {
     vector<Point3d> data;
-    for (int i=0; i<paired_data.size(); i++) {
-        data.emplace_back(paired_data.at(i).first);
+    for (auto &i : paired_data) {
+        data.emplace_back(i.first);
     }
     return data;
 }
 
-void surfaceReconstruction::reset()
-{
-    Scene::reset();
-    m_plane_d = 0;
-    m_plane = Plane(vec(0, 1, 1).Normalized(), m_plane_d);
+void surfaceReconstruction::getPointCLoud(vector< pair <Point3d,Vec3b>> &point_cloud, int &index) {
+    getImage(index);
+    getDepthImage(index);
+    pcloud.create(image_mat, depth_mat);
+
+    Vec3d degree = {180.0, 0.0, 0.0};
+    Mat rotation = pcloud.rotationMatrix(degree);
+    pcloud.rotate(rotation);
+    point_cloud = pcloud.m_points;
 }
 
-void surfaceReconstruction::resize()
-{
-    static bool first_pass = true;
-    if (first_pass)
-        first_pass = false;
+Mat surfaceReconstruction::getFrame(int index) {
+    ostringstream frame_to_stream; // declaring output string stream
+    frame_to_stream << index; // frame_to_stream a number as a stream into output
+    string frame_to_string = frame_to_stream.str(); // the str() coverts number into string
+    return imread(generic::stereo_dir + "/" + image_prefix + "_" + frame_to_string + ".png");
 }
+//!---------------------------------------------------------------------------------------------------------------------
 
+//!---------------------------------------------------------------------------------------------------------------------
+//! draw functions
+//!---------------------------------------------------------------------------------------------------------------------
 void surfaceReconstruction::draw() {
     if (m_flag) {
         drawAdjacentPoints();
-//        m_flag = false;
     }
     else {
-//        int counter{0};
-//        for (auto &i : m_mesh.getVertices()) {
-//            if (i.z != 0) {
-//                Point3D(i.x, i.y, i.z,
-//                        Colour(pcloud.m_points.at((counter)).second[2], pcloud.m_points.at(counter).second[1],
-//                               pcloud.m_points.at(counter).second[0])).draw();
-//            }
-//            counter++;
-//        }
+        for (auto &l_point : l_points) {
+            Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
+                    Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
+        }
     }
 }
 
 void surfaceReconstruction::drawAdjacentPoints() {
-//    m_mesh.getVertices().clear();
-//    pcloud.m_points = new_r_points;
-//    createMesh(pcloud.m_points, m_mesh);
-
-    unsigned long counter{0};
-    for (auto &i : m_mesh.getVertices()) {
-//        Point3D(i.x, i.y, i.z, Colour(pcloud.m_points.at((counter)).second[2] , pcloud.m_points.at(counter).second[1], pcloud.m_points.at(counter).second[0])).draw();
-//        counter++;
-    }
-
-    cout << "new_l_points size = " << l_points.size() << endl;
-    cout << "new_r_points size = " << r_points.size() << endl;
-
-    Point3d not_p(0,0,0);
-    for (int i=0; i<r_points.size(); i++) {
-//    for (int i=0; i<50*10; i++) {
+//    Point3d not_p(0,0,0);
+        for (int i=0; i<r_points.size(); i++) {
 //        if (l_points[i].first == not_p || r_points[i].first == not_p) {
 //        if (l_points[i].first != not_p) {
 //            if (r_points[i].first != not_p) {
-            Point3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
-                    Colour(l_points.at((i)).second[2], l_points.at((i)).second[1], l_points.at((i)).second[0])).draw();
-            Point3D(r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
+                Point3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
+                        Colour(l_points.at((i)).second[2], l_points.at((i)).second[1], l_points.at((i)).second[0])).draw();
+                Point3D(r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
                     Colour(r_points.at((i)).second[2], r_points.at((i)).second[1], r_points.at((i)).second[0])).draw();
-//                Point3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z, Colour::blue).draw();
-//                Point3D(r_points[i].first.x, r_points[i].first.y, r_points[i].first.z, Colour::red).draw();
-//                LineSeg3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
-//                      r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
-//                      Colour::yellow).draw();
 //            }
-//        }
-    }
+        }
 }
+//!---------------------------------------------------------------------------------------------------------------------
+

@@ -130,59 +130,59 @@ void PointCloud::rotate(const Mat &rotation_mat) {
     }
 }
 
-void PointCloud::findCorrespondingPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points) {
-    CameraConstants camera;
-
-    // the parameter slide show how many pixels to slide the window in each direction
-    int window_size{70}, slide{180};
-    int top_row, top_col, width, height;
-
-    int num_points{10};
-    int searching_points[num_points];
-    std::random_device rd; // obtain a random number from hardware
-    std::mt19937 eng(rd()); // seed the generator
-    int left_range{20*camera.image_height/100};
-    int right_range{80*camera.image_height/100};
-    std::uniform_int_distribution<> distr(left_range, right_range); // define the range
-    for(int n=0; n<num_points; ++n)
-        searching_points[n] = distr(eng);
-
-    for (int row=0; row<num_points; row++) {
-        for (int col=0; col<num_points; col++) {
-             cv::Rect img_roi(searching_points[col], searching_points[row], window_size, window_size);
-             Mat img_template = l_frame_rgb(img_roi);
-
-             top_col = searching_points[col]-slide;
-             top_row = searching_points[row]-slide;
-             width = 2*slide;
-             height = 2*slide;
-
-             validate(top_col, top_row, width, height);
-
-             cv::Rect cube_roi(top_col, top_row, width, height);
-             Mat img_cube = r_frame_rgb(cube_roi);
-
-             Mat result;
-             matchTemplate(img_cube, img_template, result, 5);
-
-             cv::Point best_match;
-             minMaxLoc(result, nullptr, nullptr, nullptr, &best_match);
-
-             Point2d left_point(searching_points[col], searching_points[row]);
-             l_points.emplace_back(convertTo3d(l_frame_rgb, l_frame_rgbd, left_point));
-
-             Point2d right_point = Point2d(best_match.x+top_col, best_match.y+top_row);
-             r_points.emplace_back(convertTo3d(r_frame_rgb, r_frame_rgbd, right_point));
-
-//             namedWindow("test_left", WINDOW_NORMAL);
-//             namedWindow("test_right", WINDOW_NORMAL);
-//             circle(l_frame_rgb, left_point, 1, Scalar(0, 0, 255), FILLED, LINE_8);
-//             circle(r_frame_rgb, right_point, 1, Scalar(0, 0, 255), FILLED, LINE_8);
-//             imshow("test_left", l_frame_rgb);
-//             imshow("test_right", r_frame_rgb);
-        }
-    }
-}
+//void PointCloud::findCorrespondingPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points) {
+//    CameraConstants camera;
+//
+//    // the parameter slide show how many pixels to slide the window in each direction
+//    int window_size{70}, slide{180};
+//    int top_row, top_col, width, height;
+//
+//    int num_points{10};
+//    int searching_points[num_points];
+//    std::random_device rd; // obtain a random number from hardware
+//    std::mt19937 eng(rd()); // seed the generator
+//    int left_range{20*camera.image_height/100};
+//    int right_range{80*camera.image_height/100};
+//    std::uniform_int_distribution<> distr(left_range, right_range); // define the range
+//    for(int n=0; n<num_points; ++n)
+//        searching_points[n] = distr(eng);
+//
+//    for (int row=0; row<num_points; row++) {
+//        for (int col=0; col<num_points; col++) {
+//             cv::Rect img_roi(searching_points[col], searching_points[row], window_size, window_size);
+//             Mat img_template = l_frame_rgb(img_roi);
+//
+//             top_col = searching_points[col]-slide;
+//             top_row = searching_points[row]-slide;
+//             width = 2*slide;
+//             height = 2*slide;
+//
+//             validate(top_col, top_row, width, height);
+//
+//             cv::Rect cube_roi(top_col, top_row, width, height);
+//             Mat img_cube = r_frame_rgb(cube_roi);
+//
+//             Mat result;
+//             matchTemplate(img_cube, img_template, result, 5);
+//
+//             cv::Point best_match;
+//             minMaxLoc(result, nullptr, nullptr, nullptr, &best_match);
+//
+//             Point2d left_point(searching_points[col], searching_points[row]);
+//             l_points.emplace_back(convertTo3d(l_frame_rgb, l_frame_rgbd, left_point));
+//
+//             Point2d right_point = Point2d(best_match.x+top_col, best_match.y+top_row);
+//             r_points.emplace_back(convertTo3d(r_frame_rgb, r_frame_rgbd, right_point));
+//
+////             namedWindow("test_left", WINDOW_NORMAL);
+////             namedWindow("test_right", WINDOW_NORMAL);
+////             circle(l_frame_rgb, left_point, 1, Scalar(0, 0, 255), FILLED, LINE_8);
+////             circle(r_frame_rgb, right_point, 1, Scalar(0, 0, 255), FILLED, LINE_8);
+////             imshow("test_left", l_frame_rgb);
+////             imshow("test_right", r_frame_rgb);
+//        }
+//    }
+//}
 
 //void PointCloud::findAdjacentPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points) {
 //    // the parameter slide show how many pixels to slide the window in each direction
@@ -367,8 +367,7 @@ void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst
     //TODO delete m_src_KDTree and m_dst_KDTree pointers
     //TODO i convert point from double to float -> check if that influence my solution
 
-//    left_frame -> src, right_frame ->dst
-    KDTree *m_src_KDTree, *m_dst_KDTree;
+    KDTree *dst_KDTree;
     VecArray src_pts, dst_pts;
     int size = src.size();
     for (int i=0; i<size; i++) {
@@ -376,72 +375,46 @@ void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst
         dst_pts.emplace_back(vec(dst.at(i).x, dst.at(i).y, dst.at(i).z));
     }
 
-    m_dst_KDTree = new KDTree(dst_pts);
+    dst_KDTree = new KDTree(dst_pts);
     float dist;
 
     const float t = vvr::getSeconds();
 
     //TODO update 5000 and do it in parametric way
-//    for (int i=0; i<src_pts.size(); i++) {
     for (int i=0; i<5000; i++) {
         for (int j=0; j<kn; j++) {
             const KDNode **nearests = new const KDNode*[kn];
             memset(nearests, NULL, kn * sizeof(KDNode*));
 
-            m_dst_KDTree->kNearest(j, src_pts.at(i), m_dst_KDTree->root(), nearests, &dist);
+            dst_KDTree->kNearest(j, src_pts.at(i), dst_KDTree->root(), nearests, &dist);
             nearestPoints.emplace_back(convertToPoint3d((*nearests)->split_point));
         }
     }
 
     const float KDTree_knn_time = vvr::getSeconds() - t;
 //    echo(KDTree_knn_time);
+    delete dst_KDTree;
 }
 
-Point3d PointCloud::convertToPoint3d(const vec &point) {
-    Point3d point3d;
-    point3d.x = point.x;
-    point3d.y = point.y;
-    point3d.z = point.z;
-    return point3d;
-}
-
-void PointCloud::validate(int &top_col, int &top_row, int &width, int &height) {
-    CameraConstants camera;
-
-    if (top_col < 0) {
-        width += top_col;
-        top_col = 0;
-    }
-
-    if (top_row < 0) {
-        height += top_row;
-        top_row = 0;
-    }
-
-    if ((width + top_col) > camera.image_width)
-        width = camera.image_width - top_col;
-
-    if ((height + top_row) > camera.image_height)
-        height = camera.image_height - top_row;
-}
-
-/*
-//    double padding = (double)window_size/(2.0*100.0);
-void PointCloud::zeroPad(const Mat &image, const double size, Mat &new_image) {
-
-    // We give them a value of size% the size of src.
-    int top = (int) (size*image.rows);
-    int bottom = (int) (size*image.rows);
-    int left = (int) (size*image.cols);
-    int right = (int) (size*image.cols);
-
-    copyMakeBorder(image, new_image, top, bottom, left, right, BORDER_CONSTANT, 0);
-
-//    namedWindow("before padding", WINDOW_NORMAL);
-//    imshow("before padding", image);
-//    cout << "before size = " << image.size << endl;
-}
-*/
+//void PointCloud::validate(int &top_col, int &top_row, int &width, int &height) {
+//    CameraConstants camera;
+//
+//    if (top_col < 0) {
+//        width += top_col;
+//        top_col = 0;
+//    }
+//
+//    if (top_row < 0) {
+//        height += top_row;
+//        top_row = 0;
+//    }
+//
+//    if ((width + top_col) > camera.image_width)
+//        width = camera.image_width - top_col;
+//
+//    if ((height + top_row) > camera.image_height)
+//        height = camera.image_height - top_row;
+//}
 
 pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const vector<Point3d> &src, const vector<Point3d> &dst) {
     Point3d src_center, dst_center;
@@ -466,24 +439,7 @@ pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const v
     Eigen::MatrixXd X(3,size), Y(3,size);
     convertToEigenMat(dst_centered_points, src_centered_points, X, Y);
 
-    // create diagonal matrix
-//    Eigen::MatrixXd W(size, size);
-//    W.setIdentity();
-//    cout << W << endl;
-//    Eigen::MatrixXd W;
-//    for (int i=0; i<size; i++) {
-//        for (int j=0; j<size; j++) {
-//            if (i==j) {
-//                W(i,j) = 1;
-//            }
-//            else {
-//                W(i,j) = 0;
-//            }
-//        }
-//    }
-
     // compute the covariance matrix
-//    Eigen::Matrix3d S = X*W*Y.transpose();
     Eigen::Matrix3d S = X*Y.transpose();
 
     // compute the singular value decomposition
@@ -552,6 +508,14 @@ Eigen::Vector3d PointCloud::convertToEigenVector3d(const Point3d &point) {
     res(1,0) = point.y;
     res(2,0) = point.z;
     return res;
+}
+
+Point3d PointCloud::convertToPoint3d(const vec &point) {
+    Point3d point3d;
+    point3d.x = point.x;
+    point3d.y = point.y;
+    point3d.z = point.z;
+    return point3d;
 }
 
 void PointCloud::tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points) {

@@ -19,21 +19,23 @@ class surfaceReconstruction : public vvr::Scene {
         void draw() override;
         void reset() override;
         void resize() override;
-        void createMesh(const vector<pair<Point3d, Vec3b>> &image_points, Mesh &mesh);
+//        void createMesh(const vector<pair<Point3d, Vec3b>> &image_points, Mesh &mesh);
         void createGui();
         void showFrames(int index);
+        void getPointCLoud(vector< pair <Point3d,Vec3b>> &point_cloud, int &index);
 
         static void change_frame(int x, void*);
         static void drawFrame(int index, void* object);
         static void drawLeftFrame(int x, void*);
         static void drawRightFrame(int x, void*);
         static void alignFrames(int x, void*);
+        static void alignFramesNoKnn(int x, void*);
         void drawAdjacentPoints();
 
         Mat getFrame(int index);
         void getDepthImage(int frame_index);
         void getImage(int frame_index);
-        vector<Point3d> getFirstElements(vector< pair <Point3d,Vec3b>> &paired_data);
+        vector<Point3d> getFirstData(vector< pair <Point3d,Vec3b>> &paired_data);
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;
@@ -41,7 +43,7 @@ class surfaceReconstruction : public vvr::Scene {
         vvr::Colour m_obj_col;
         math::Plane m_plane;
         PointCloud pcloud;
-        Mesh m_mesh;
+//        Mesh m_mesh;
 
         int l_frame_index, r_frame_index;
         int num_images;
