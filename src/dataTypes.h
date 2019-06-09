@@ -10,19 +10,6 @@ using namespace std;
 using namespace cv;
 
 namespace dataTypes {
-    void convertToEigenMat(const vector<Point3d> &l_points, const vector<Point3d> &r_points, Eigen::MatrixXd &l_mat, Eigen::MatrixXd &r_mat) {
-        int size = static_cast<int>(l_points.size());
-        for (int i=0; i<size; i++) {
-            l_mat(0,i) = l_points.at(i).x;
-            l_mat(1,i) = l_points.at(i).y;
-            l_mat(2,i) = l_points.at(i).z;
-
-            r_mat(0,i) = r_points.at(i).x;
-            r_mat(1,i) = r_points.at(i).y;
-            r_mat(2,i) = r_points.at(i).z;
-        }
-    }
-
     void convertToEigenMat(const vector<Point3d> &points, Eigen::MatrixXd &mat) {
         int size = static_cast<int>(points.size());
         for (int i=0; i<size; i++) {

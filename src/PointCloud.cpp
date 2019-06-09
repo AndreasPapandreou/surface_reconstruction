@@ -112,7 +112,6 @@ Mat PointCloud::rotationMatrix(const Vec3d &degree)
     // get the final rotation matrix
     Mat rotation = rotation_z * rotation_y * rotation_x;
     return rotation;
-
 }
 
 /* ------------------------------------------------------------------------------
@@ -382,7 +381,8 @@ void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst
     const float t = vvr::getSeconds();
 
     //TODO update 5000 and do it in parametric way
-    for (int i=0; i<5000; i++) {
+    for (int i=0; i<src_pts.size(); i++) {
+//    for (int i=0; i<5000; i++) {
         for (int j=0; j<kn; j++) {
             const KDNode **nearests = new const KDNode*[kn];
             memset(nearests, NULL, kn * sizeof(KDNode*));
@@ -418,30 +418,24 @@ void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst
 //}
 
 pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const vector<Point3d> &src, const vector<Point3d> &dst) {
-    Point3d src_center, dst_center;
     int size = static_cast<int>(dst.size());
+    Point3d src_center = getCentroid(src);
+    Point3d dst_center = getCentroid(dst);
 
-    // compute the centroids of both point sets
-    for (int i=0; i<size; ++i)
-    {
-        src_center += src.at(i);
-        dst_center += dst.at(i);
-    }
-    src_center/=size;
-    dst_center/=size;
-
-    vector<Point3d> src_centered_points, dst_centered_points;
-    // compute the centered vectors
-    for (int i=0; i<size; i++) {
-        src_centered_points.emplace_back(src.at(i) - src_center);
-        dst_centered_points.emplace_back(dst.at(i) - dst_center);
-    }
-
+    Point3d src_centered_point, dst_centered_point;
     Eigen::MatrixXd X(3,size), Y(3,size);
-    dataTypes::convertToEigenMat(dst_centered_points, src_centered_points, X, Y);
+    for (int i=0; i<size; i++) {
+        src_centered_point = src.at(i) - src_center;
+        dst_centered_point = dst.at(i) - dst_center;
+
+        //TODO check if the operation with integer(size) influences the double values of X and Y
+        X(0,i) = src_centered_point.x/size; X(1,i) = src_centered_point.y/size; X(2,i) = src_centered_point.z/size;
+        Y(0,i) = dst_centered_point.x/size; Y(1,i) = dst_centered_point.y/size; Y(2,i) = dst_centered_point.z/size;
+    }
 
     // compute the covariance matrix
-    Eigen::Matrix3d S = X*Y.transpose();
+    Eigen::Matrix3d S = Y*X.transpose();
+//    cout << "cov = " << S << endl;
 
     // compute the singular value decomposition
     Eigen::JacobiSVD<Eigen::MatrixXd> svd;
@@ -472,7 +466,16 @@ pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const v
     return pair<Eigen::Matrix3d, Eigen::Vector3d>(R, t);
 }
 
-void PointCloud::tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points) {
+Point3d PointCloud::getCentroid(const vector<Point3d> &points) {
+    Point3d center(0,0,0);
+    for (const auto &i : points) {
+        center += i;
+    }
+    int size = points.size();
+    return center/size;
+}
+
+void PointCloud::transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points) {
     int size = static_cast<int>(points.size());
 
     Eigen::MatrixXd mat(3,size);
@@ -488,7 +491,7 @@ void PointCloud::tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vec
     dataTypes::convertToVector(new_points, points);
 }
 
-double PointCloud::computeError(const vector<Point3d> &src, const vector<Point3d> &dst) {
+double PointCloud::getError(const vector<Point3d> &src, const vector<Point3d> &dst) {
     double error{0.0};
     for(int i=0; i<src.size(); i++) {
         Point3d diff_point = src.at(i) - dst.at(i);

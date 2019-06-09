@@ -35,7 +35,7 @@ void surfaceReconstruction::createGui() {
     createButton("Draw left frame", drawLeftFrame, this, QT_PUSH_BUTTON, true);
     createButton("Draw right frame", drawRightFrame, this, QT_PUSH_BUTTON, true);
     createButton("Align frames", alignFrames, this, QT_PUSH_BUTTON, true);
-    createButton("Align frames no knn", alignFramesNoKnn, this, QT_PUSH_BUTTON, true);
+    createButton("Align frames using knn", alignFramesKnn, this, QT_PUSH_BUTTON, true);
 
     // initialize with the two first frames
     showFrames(1);
@@ -92,11 +92,13 @@ void surfaceReconstruction::change_frame(int x, void* object) {
 
 void surfaceReconstruction::drawLeftFrame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
+    cout << "l_frame = " << myClass->l_frame_index << endl;
     drawFrame(myClass->l_frame_index, object);
 }
 
 void surfaceReconstruction::drawRightFrame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
+    cout << "r_frame = " << myClass->r_frame_index << endl;
     drawFrame(myClass->r_frame_index, object);
 }
 
@@ -107,53 +109,113 @@ void surfaceReconstruction::drawFrame(int index, void* object) {
     myClass->m_flag = false;
 }
 
-void surfaceReconstruction::alignFrames(int index, void* object) {
+// without considering the colors
+void surfaceReconstruction::alignFramesKnn(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->pcloud.clearPoints();
 
-    vector< pair <Point3d,Vec3b>> l_initial_points;
-    myClass->getPointCLoud(l_initial_points, myClass->l_frame_index);
+    vector< pair <Point3d,Vec3b>> l_points;
+    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+    vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
 
     myClass->pcloud.clearPoints();
 
-    vector< pair <Point3d,Vec3b>> r_initial_points;
-    myClass->getPointCLoud(r_initial_points, myClass->r_frame_index);
+    vector< pair <Point3d,Vec3b>> r_points;
+    myClass->getPointCLoud(r_points, myClass->r_frame_index);
+    vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
 
-    vector<Point3d> l_initial_first_points = myClass->getFirstData(l_initial_points);
+    int iteration{5};
     int counter{0};
-    while(counter < 5) {
-        cout << endl;
-        cout << "iteration = " << counter << endl;
-
+    while(counter < iteration) {
         vector<Point3d> nearestPoints;
-        vector<Point3d> r_initial_first_points = myClass->getFirstData(r_initial_points);
-        myClass->pcloud.kNearest(l_initial_first_points, r_initial_first_points, nearestPoints, 1);
+        myClass->pcloud.kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
 
         pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
-        R_t = myClass->pcloud.computeRigidTransform(l_initial_first_points, nearestPoints);
+        R_t = myClass->pcloud.computeRigidTransform(l_uncolored_points, nearestPoints);
+        myClass->pcloud.transformPoints(R_t, r_uncolored_points);
 
-        myClass->pcloud.tranformPoints(R_t, r_initial_first_points);
+        double error = myClass->pcloud.getError(l_uncolored_points, nearestPoints);
+        cout << "iteration = " << counter << endl;
+        cout << "error = " << error << endl << endl;
 
-        myClass->r_points.clear();
-        myClass->l_points = l_initial_points;
-        for (int i=0; i<r_initial_first_points.size(); i++) {
-            myClass->r_points.emplace_back(r_initial_first_points.at(i), r_initial_points.at(i).second);
-        }
-
-        r_initial_points = myClass->r_points;
-
-        vector<Point3d> test;
-        for (int i=0; i<nearestPoints.size(); i++) {
-            test.emplace_back(l_initial_first_points.at(i));
-        }
-        double error = myClass->pcloud.computeError(test, nearestPoints);
-        cout << "error = " << error << endl;
         counter++;
+
+        // refresh data in order to draw them
+        if (iteration == counter) {
+            vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
+            cout << "indices size = " << indeces.size() << endl;
+
+            myClass->l_points.clear();
+            for (int i=0; i<indeces.size(); i++) {
+                myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
+            }
+
+            myClass->r_points.clear();
+            for (int i=0; i<r_uncolored_points.size(); i++) {
+                myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
+            }
+//            myClass->l_points = l_points;
+
+            cout << "l_points = " << myClass->l_points.size() << endl;
+            cout << "r_points = " << myClass->r_points.size() << endl;
+        }
     }
     myClass->m_flag = true;
 }
 
-void surfaceReconstruction::alignFramesNoKnn(int index, void* object) {
+// without considering the colors
+//void surfaceReconstruction::alignFramesKnn(int index, void* object) {
+//    auto * myClass = (surfaceReconstruction*) object;
+//    vector< pair <Point3d,Vec3b>> l_points;
+//    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+//    vector< pair <Point3d,Vec3b>> r_points;
+//    int numFrames = {2};
+//
+//    for (int i=0; i<numFrames; i++) {
+////        l_points.clear();
+//        vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
+//
+////        r_points.clear();
+//        myClass->getPointCLoud(r_points, myClass->r_frame_index);
+//        vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
+//
+//        int iteration{2};
+//        int counter{0};
+//        while(counter < iteration) {
+//            vector<Point3d> nearestPoints;
+//            myClass->pcloud.kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
+//
+//            pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
+//            R_t = myClass->pcloud.computeRigidTransform(l_uncolored_points, nearestPoints);
+//            myClass->pcloud.transformPoints(R_t, r_uncolored_points);
+//
+//            double error = myClass->pcloud.getError(l_uncolored_points, nearestPoints);
+//            cout << "iteration = " << counter << endl;
+//            cout << "error = " << error << endl << endl;
+//
+//            counter++;
+//
+//            // refresh data in order to draw them
+//            if (iteration == counter) {
+//                vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
+//
+//                for (int i=0; i<indeces.size(); i++) {
+//                    myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
+//                }
+//
+//                for (int i=0; i<r_uncolored_points.size(); i++) {
+//                    myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
+//                }
+//            }
+//        }
+//        l_points = myClass->r_points;
+//        myClass->l_frame_index = myClass->r_frame_index;
+//        myClass->r_frame_index++;
+//    }
+//    myClass->m_flag = true;
+//}
+
+void surfaceReconstruction::alignFrames(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->pcloud.clearPoints();
     myClass->getPointCLoud(myClass->l_points, myClass->l_frame_index);
@@ -256,7 +318,16 @@ vector<Point3d> surfaceReconstruction::getFirstData(vector< pair <Point3d,Vec3b>
     return data;
 }
 
+vector<Point3d> surfaceReconstruction::getData(vector<Point3d> points, int num) {
+    vector<Point3d> result;
+    for (int i=0; i<num; i++) {
+        result.emplace_back(points.at(i));
+    }
+    return result;
+}
+
 void surfaceReconstruction::getPointCLoud(vector< pair <Point3d,Vec3b>> &point_cloud, int &index) {
+    pcloud.clearPoints();
     getImage(index);
     getDepthImage(index);
     pcloud.create(image_mat, depth_mat);
@@ -291,17 +362,35 @@ void surfaceReconstruction::draw() {
 }
 
 void surfaceReconstruction::drawAdjacentPoints() {
-//    Point3d not_p(0,0,0);
-        for (int i=0; i<r_points.size(); i++) {
-//        if (l_points[i].first == not_p || r_points[i].first == not_p) {
-//        if (l_points[i].first != not_p) {
-//            if (r_points[i].first != not_p) {
-                Point3D(l_points[i].first.x, l_points[i].first.y, l_points[i].first.z,
-                        Colour(l_points.at((i)).second[2], l_points.at((i)).second[1], l_points.at((i)).second[0])).draw();
-                Point3D(r_points[i].first.x, r_points[i].first.y, r_points[i].first.z,
-                    Colour(r_points.at((i)).second[2], r_points.at((i)).second[1], r_points.at((i)).second[0])).draw();
-//            }
+    cout << "l_points size = " << l_points.size() << endl;
+    cout << "r_points size = " << r_points.size() << endl;
+
+    for (auto &l_point : l_points) {
+        Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
+                Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
         }
+    for (auto &r_point : r_points) {
+        Point3D(r_point.first.x, r_point.first.y, r_point.first.z,
+                Colour(r_point.second[2], r_point.second[1], r_point.second[0])).draw();
+    }
 }
+
 //!---------------------------------------------------------------------------------------------------------------------
 
+//!---------------------------------------------------------------------------------------------------------------------
+//! other functionalities
+//!---------------------------------------------------------------------------------------------------------------------
+vector<int> surfaceReconstruction::removePoints(vector<Point3d> &l_points, vector<Point3d> &r_points, float threshold) {
+    vector<int> indeces;
+    float value;
+    for (int i=0; i<l_points.size(); i++) {
+            Point3d diff_point = l_points.at(i) - r_points.at(i);
+            value = pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2);
+//            cout << "value = " << value << endl;
+            if (value > threshold)
+                indeces.emplace_back(i);
+    }
+    return indeces;
+}
+
+//!---------------------------------------------------------------------------------------------------------------------

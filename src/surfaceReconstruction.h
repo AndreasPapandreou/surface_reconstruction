@@ -29,13 +29,15 @@ class surfaceReconstruction : public vvr::Scene {
         static void drawLeftFrame(int x, void*);
         static void drawRightFrame(int x, void*);
         static void alignFrames(int x, void*);
-        static void alignFramesNoKnn(int x, void*);
+        static void alignFramesKnn(int x, void*);
         void drawAdjacentPoints();
 
         Mat getFrame(int index);
         void getDepthImage(int frame_index);
         void getImage(int frame_index);
         vector<Point3d> getFirstData(vector< pair <Point3d,Vec3b>> &paired_data);
+        vector<Point3d> getData(vector<Point3d> points, int num);
+        vector<int> removePoints(vector<Point3d> & l_points, vector<Point3d> &r_points, float threshold);
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;

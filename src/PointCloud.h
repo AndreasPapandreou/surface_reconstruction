@@ -36,9 +36,10 @@ class PointCloud {
         Mat rotationMatrix(const Vec3d &degree);
         void rotate(const Mat &rotation_mat);
         pair<Eigen::Matrix3d, Eigen::Vector3d> computeRigidTransform(const vector<Point3d> &l_points, const vector<Point3d> &r_points);
-        void tranformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points);
+        void transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points);
         void kNearest(const vector<Point3d> &src, const vector<Point3d> &dst, vector<Point3d> &nearestPoints, int kn);
-        double computeError(const vector<Point3d> &src, const vector<Point3d> &dst);
+        double getError(const vector<Point3d> &src, const vector<Point3d> &dst);
+        Point3d getCentroid(const vector<Point3d> &src);
 
         void getPoints(vector< pair <Point3d,Vec3b>> &points);
         int getImageId(const ImageRGBD &image);

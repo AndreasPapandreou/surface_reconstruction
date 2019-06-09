@@ -9,8 +9,8 @@ KDTree::KDTree(VecArray &pts)
     m_root = new KDNode();
     m_depth = makeNode(m_root, pts, 0);
     const float KDTree_construction_time = vvr::getSeconds() - t;
-    echo(KDTree_construction_time);
-    echo(m_depth);
+//    echo(KDTree_construction_time);
+//    echo(m_depth);
 }
 
 KDTree::~KDTree()
@@ -18,7 +18,7 @@ KDTree::~KDTree()
     const float t = vvr::getSeconds();
     delete m_root;
     const float KDTree_destruction_time = vvr::getSeconds() - t;
-    echo(KDTree_destruction_time);
+//    echo(KDTree_destruction_time);
 }
 
 int KDTree::makeNode(KDNode *node, VecArray &pts, const int level)
