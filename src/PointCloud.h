@@ -2,7 +2,7 @@
 #define LAB0_POINTCLOUD_H
 
 #include "ImageRGBD.h"
-#include "kdTree.h"
+#include "KDTree.h"
 #include <VVRScene/mesh.h>
 #include <VVRScene/utils.h>
 #include <Eigen/SVD>
@@ -24,20 +24,18 @@ struct CameraConstants {
 };
 
 class PointCloud {
-    private:
-        vector< pair <Point3d,Vec3b>> m_points;
-
     public:
         PointCloud() {};
 
-    private:
+    public:
         void create(const Mat &image, const Mat &depth_image);
         void clearPoints();
         Mat rotationMatrix(const Vec3d &degree);
         void rotate(const Mat &rotation_mat);
         pair<Eigen::Matrix3d, Eigen::Vector3d> computeRigidTransform(const vector<Point3d> &l_points, const vector<Point3d> &r_points);
         void transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points);
-        void kNearest(const vector<Point3d> &src, const vector<Point3d> &dst, vector<Point3d> &nearestPoints, int kn);
+//        void kNearest(const vector<Point3d> &src, const vector<Point3d> &dst, vector<Point3d> &nearestPoints, int kn);
+        void kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPoints, int kn);
         double getError(const vector<Point3d> &src, const vector<Point3d> &dst);
         Point3d getCentroid(const vector<Point3d> &src);
 
@@ -50,7 +48,9 @@ class PointCloud {
 //        void findAdjacentPoints(const Mat &l_frame_rgb, const Mat &l_frame_rgbd);
 //        void validate(int &top_col, int &top_row, int &widht, int &height);
 
-    friend class surfaceReconstruction;
+    public:
+        vector< pair <Point3d,Vec3b>> m_points;
+        KDTree *m_dst_KDTree;
 };
 
 #endif //LAB0_POINTCLOUD_H

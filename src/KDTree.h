@@ -2,7 +2,6 @@
 #define LAB0_KDTREE_H
 
 #include <VVRScene/mesh.h>
-#include "PointCloud.h"
 #include "opencv2/opencv.hpp"
 
 /**
@@ -31,16 +30,14 @@ public:
     const KDNode* root() const { return m_root; }
     const VecArray &pts;
 
-private:
+public:
     static int makeNode(KDNode *node, VecArray &pts, const int level);
     static void getNodesOfLevel(KDNode *node, std::vector<KDNode*> &nodes, int level);
     void kNearest(const int k, const vec& test_pt, const KDNode* root, const KDNode **knn, float *best_dist);
 
-private:
+public:
     KDNode *m_root;
     int m_depth;
-
-    friend class PointCloud;
 };
 
 /**
@@ -55,3 +52,5 @@ struct VecComparator {
 };
 
 #endif //LAB0_KDTREE_H
+
+

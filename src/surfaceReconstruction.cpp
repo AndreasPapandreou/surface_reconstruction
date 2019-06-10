@@ -7,6 +7,7 @@ using namespace vvr;
 surfaceReconstruction::surfaceReconstruction(int &index) {
     initialize(index);
     createGui();
+//    pcloud = new PointCloud;
 }
 
 void surfaceReconstruction::initialize(int &index) {
@@ -110,118 +111,144 @@ void surfaceReconstruction::drawFrame(int index, void* object) {
 }
 
 // without considering the colors
-void surfaceReconstruction::alignFramesKnn(int index, void* object) {
-    auto * myClass = (surfaceReconstruction*) object;
-    myClass->pcloud.clearPoints();
-
-    vector< pair <Point3d,Vec3b>> l_points;
-    myClass->getPointCLoud(l_points, myClass->l_frame_index);
-    vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
-
-    myClass->pcloud.clearPoints();
-
-    vector< pair <Point3d,Vec3b>> r_points;
-    myClass->getPointCLoud(r_points, myClass->r_frame_index);
-    vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
-
-    int iteration{5};
-    int counter{0};
-    while(counter < iteration) {
-        vector<Point3d> nearestPoints;
-        myClass->pcloud.kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
-
-        pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
-        R_t = myClass->pcloud.computeRigidTransform(l_uncolored_points, nearestPoints);
-        myClass->pcloud.transformPoints(R_t, r_uncolored_points);
-
-        double error = myClass->pcloud.getError(l_uncolored_points, nearestPoints);
-        cout << "iteration = " << counter << endl;
-        cout << "error = " << error << endl << endl;
-
-        counter++;
-
-        // refresh data in order to draw them
-        if (iteration == counter) {
-            vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
-            cout << "indices size = " << indeces.size() << endl;
-
-            myClass->l_points.clear();
-            for (int i=0; i<indeces.size(); i++) {
-                myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
-            }
-
-            myClass->r_points.clear();
-            for (int i=0; i<r_uncolored_points.size(); i++) {
-                myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
-            }
-//            myClass->l_points = l_points;
-
-            cout << "l_points = " << myClass->l_points.size() << endl;
-            cout << "r_points = " << myClass->r_points.size() << endl;
-        }
-    }
-    myClass->m_flag = true;
-}
-
-// without considering the colors
 //void surfaceReconstruction::alignFramesKnn(int index, void* object) {
 //    auto * myClass = (surfaceReconstruction*) object;
+//    myClass->pcloud->clearPoints();
+//
 //    vector< pair <Point3d,Vec3b>> l_points;
 //    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+//    vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
+//
+//    myClass->pcloud->clearPoints();
+//
 //    vector< pair <Point3d,Vec3b>> r_points;
-//    int numFrames = {2};
+//    myClass->getPointCLoud(r_points, myClass->r_frame_index);
+//    vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
 //
-//    for (int i=0; i<numFrames; i++) {
-////        l_points.clear();
-//        vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
+//    int iteration{5};
+//    int counter{0};
+//    while(counter < iteration) {
+//        vector<Point3d> nearestPoints;
+//        myClass->pcloud->kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
 //
-////        r_points.clear();
-//        myClass->getPointCLoud(r_points, myClass->r_frame_index);
-//        vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
+//        pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
+//        R_t = myClass->pcloud->computeRigidTransform(l_uncolored_points, nearestPoints);
+//        myClass->pcloud->transformPoints(R_t, r_uncolored_points);
+//        myClass->pcloud->transformPoints(R_t, nearestPoints);
 //
-//        int iteration{2};
-//        int counter{0};
-//        while(counter < iteration) {
-//            vector<Point3d> nearestPoints;
-//            myClass->pcloud.kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
+//        double error = myClass->pcloud->getError(l_uncolored_points, nearestPoints);
+//        cout << "iteration = " << counter << endl;
+//        cout << "error = " << error << endl << endl;
 //
-//            pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
-//            R_t = myClass->pcloud.computeRigidTransform(l_uncolored_points, nearestPoints);
-//            myClass->pcloud.transformPoints(R_t, r_uncolored_points);
+//        counter++;
 //
-//            double error = myClass->pcloud.getError(l_uncolored_points, nearestPoints);
-//            cout << "iteration = " << counter << endl;
-//            cout << "error = " << error << endl << endl;
+//        // refresh data in order to draw them
+//        if (iteration == counter) {
+//            vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
+//            cout << "indices size = " << indeces.size() << endl;
 //
-//            counter++;
-//
-//            // refresh data in order to draw them
-//            if (iteration == counter) {
-//                vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
-//
-//                for (int i=0; i<indeces.size(); i++) {
-//                    myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
-//                }
-//
-//                for (int i=0; i<r_uncolored_points.size(); i++) {
-//                    myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
-//                }
+//            myClass->l_points.clear();
+//            for (int i=0; i<indeces.size(); i++) {
+//                myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
 //            }
+//
+//            myClass->r_points.clear();
+//            for (int i=0; i<r_uncolored_points.size(); i++) {
+//                myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
+//            }
+////            myClass->l_points = l_points;
+//
+//            cout << "l_points = " << myClass->l_points.size() << endl;
+//            cout << "r_points = " << myClass->r_points.size() << endl;
 //        }
-//        l_points = myClass->r_points;
-//        myClass->l_frame_index = myClass->r_frame_index;
-//        myClass->r_frame_index++;
 //    }
 //    myClass->m_flag = true;
 //}
 
+// without considering the colors
+void surfaceReconstruction::alignFramesKnn(int index, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->all_points.clear();
+    vector<Point3d> l_uncolored_points, r_uncolored_points, nearestPoints;
+    vector< pair <Point3d,Vec3b>> l_points, r_points;
+    int numFrames = {1};
+
+    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+    cout << "initial frame = " << myClass->l_frame_index << endl;
+
+    for (int i=0; i<numFrames; i++) {
+        cout << "next frame = " << myClass->r_frame_index << endl;
+        l_uncolored_points = myClass->getFirstData(l_points);
+        r_points.clear();
+        myClass->getPointCLoud(r_points, myClass->r_frame_index);
+        r_uncolored_points = myClass->getFirstData(r_points);
+
+        VecArray dst_pts;
+        int size = l_uncolored_points.size();
+        for (int j=0; j<size; j++) {
+            dst_pts.emplace_back(vec(static_cast<float>(l_uncolored_points.at(j).x),
+                                     static_cast<float>(l_uncolored_points.at(j).y),
+                                     static_cast<float>(l_uncolored_points.at(j).z)));
+        }
+        myClass->pcloud.m_dst_KDTree = new KDTree(dst_pts);
+
+        int iteration{3};
+        int counter{0};
+        while(counter < iteration) {
+            nearestPoints.clear();
+            myClass->pcloud.kNearest(r_uncolored_points, nearestPoints, 1);
+
+            pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
+            R_t = myClass->pcloud.computeRigidTransform(nearestPoints, r_uncolored_points);
+
+            myClass->pcloud.transformPoints(R_t, r_uncolored_points);
+
+            double error = myClass->pcloud.getError(r_uncolored_points, nearestPoints);
+            cout << "iteration = " << counter << endl;
+            cout << "error = " << error << endl << endl;
+
+            counter++;
+
+            // refresh data in order to draw them
+            if (iteration == counter) {
+                vector<int> indices = myClass->removePoints(l_uncolored_points, nearestPoints, 0.005f);
+                for (int j = 0; j < indices.size(); j++) {
+                    myClass->all_points.emplace_back(l_uncolored_points.at(j), l_points.at(j).second);
+                }
+                myClass->r_points.clear();
+                for (int j=0; j<r_uncolored_points.size(); j++) {
+                    myClass->r_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+                }
+
+                if (numFrames == i+1) {
+                    for (int j=0; j<r_uncolored_points.size(); j++) {
+                        myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+                    }
+                }
+            }
+        }
+        l_points = myClass->r_points;
+        myClass->r_frame_index++;
+    }
+    myClass->m_flag = true;
+}
+
 void surfaceReconstruction::alignFrames(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
+    myClass->all_points.clear();
+
     myClass->pcloud.clearPoints();
     myClass->getPointCLoud(myClass->l_points, myClass->l_frame_index);
 
     myClass->pcloud.clearPoints();
     myClass->getPointCLoud(myClass->r_points, myClass->r_frame_index);
+
+    for (int i=0; i<myClass->l_points.size(); i++) {
+        myClass->all_points.emplace_back(myClass->l_points.at(i));
+    }
+    for (int i=0; i<myClass->r_points.size(); i++) {
+        myClass->all_points.emplace_back(myClass->r_points.at(i));
+    }
     myClass->m_flag = true;
 }
 
@@ -332,9 +359,9 @@ void surfaceReconstruction::getPointCLoud(vector< pair <Point3d,Vec3b>> &point_c
     getDepthImage(index);
     pcloud.create(image_mat, depth_mat);
 
-    Vec3d degree = {180.0, 0.0, 0.0};
-    Mat rotation = pcloud.rotationMatrix(degree);
-    pcloud.rotate(rotation);
+//    Vec3d degree = {180.0, 0.0, 0.0};
+//    Mat rotation = pcloud.rotationMatrix(degree);
+//    pcloud.rotate(rotation);
     point_cloud = pcloud.m_points;
 }
 
@@ -362,14 +389,17 @@ void surfaceReconstruction::draw() {
 }
 
 void surfaceReconstruction::drawAdjacentPoints() {
-    cout << "l_points size = " << l_points.size() << endl;
-    cout << "r_points size = " << r_points.size() << endl;
+    cout << "all_points size = " << all_points.size() << endl;
 
-    for (auto &l_point : l_points) {
-        Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
-                Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
-        }
-    for (auto &r_point : r_points) {
+//    for (auto &l_point : l_points) {
+//        Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
+//                Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
+//        }
+//    for (auto &r_point : r_points) {
+//        Point3D(r_point.first.x, r_point.first.y, r_point.first.z,
+//                Colour(r_point.second[2], r_point.second[1], r_point.second[0])).draw();
+//    }
+    for (auto &r_point : all_points) {
         Point3D(r_point.first.x, r_point.first.y, r_point.first.z,
                 Colour(r_point.second[2], r_point.second[1], r_point.second[0])).draw();
     }
@@ -380,17 +410,18 @@ void surfaceReconstruction::drawAdjacentPoints() {
 //!---------------------------------------------------------------------------------------------------------------------
 //! other functionalities
 //!---------------------------------------------------------------------------------------------------------------------
+// if diff <= threshold -> remove them
 vector<int> surfaceReconstruction::removePoints(vector<Point3d> &l_points, vector<Point3d> &r_points, float threshold) {
-    vector<int> indeces;
+    vector<int> indices;
     float value;
     for (int i=0; i<l_points.size(); i++) {
             Point3d diff_point = l_points.at(i) - r_points.at(i);
-            value = pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2);
+            value = abs(pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2));
 //            cout << "value = " << value << endl;
             if (value > threshold)
-                indeces.emplace_back(i);
+                indices.emplace_back(i);
     }
-    return indeces;
+    return indices;
 }
 
 //!---------------------------------------------------------------------------------------------------------------------

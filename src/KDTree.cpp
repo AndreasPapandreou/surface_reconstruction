@@ -1,4 +1,4 @@
-#include "kdTree.h"
+#include "KDTree.h"
 
 #define DIMENSIONS 3
 
@@ -9,8 +9,8 @@ KDTree::KDTree(VecArray &pts)
     m_root = new KDNode();
     m_depth = makeNode(m_root, pts, 0);
     const float KDTree_construction_time = vvr::getSeconds() - t;
-//    echo(KDTree_construction_time);
-//    echo(m_depth);
+    echo(KDTree_construction_time);
+    echo(m_depth);
 }
 
 KDTree::~KDTree()
@@ -18,7 +18,7 @@ KDTree::~KDTree()
     const float t = vvr::getSeconds();
     delete m_root;
     const float KDTree_destruction_time = vvr::getSeconds() - t;
-//    echo(KDTree_destruction_time);
+    echo(KDTree_destruction_time);
 }
 
 int KDTree::makeNode(KDNode *node, VecArray &pts, const int level)
@@ -79,8 +79,8 @@ void KDTree::kNearest(const int k, const vec &test_pt, const KDNode *root, const
     if(!root) return;
 
     //!Distance
-    const double d = test_pt.Distance(root->split_point);
-    const double d_split = root->split_point.ptr()[root->axis] - test_pt.ptr()[root->axis];
+    const float d = test_pt.Distance(root->split_point);
+    const float d_split = root->split_point.ptr()[root->axis] - test_pt.ptr()[root->axis];
     const bool right_of_split = d_split <= 0;
 
     if (*(knn+k) == NULL || d < *best_dist) {

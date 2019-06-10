@@ -2,6 +2,7 @@
 #define LAB0_SURFACERECONSTRUCTION_H
 
 #include <iostream>
+#include <stdlib.h>
 #include <VVRScene/mesh.h>
 #include <VVRScene/utils.h>
 #include "PointCloud.h"
@@ -41,7 +42,7 @@ class surfaceReconstruction : public vvr::Scene {
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;
-        vector< pair <Point3d,Vec3b>> l_points, r_points;
+        vector< pair <Point3d,Vec3b>> l_points, r_points, all_points;
         vvr::Colour m_obj_col;
         math::Plane m_plane;
         PointCloud pcloud;
