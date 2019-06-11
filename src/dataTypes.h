@@ -10,8 +10,8 @@ using namespace std;
 using namespace cv;
 
 namespace dataTypes {
-    void convertToEigenMat(const vector<Point3d> &points, Eigen::MatrixXd &mat) {
-        int size = static_cast<int>(points.size());
+    void convertToEigenMat(const vector<vec> &points, Eigen::MatrixXf &mat) {
+        int size = points.size();
         for (int i=0; i<size; i++) {
             mat(0,i) = points.at(i).x;
             mat(1,i) = points.at(i).y;
@@ -19,8 +19,8 @@ namespace dataTypes {
         }
     }
 
-    void convertToVector(const Eigen::MatrixXd &mat, vector<Point3d> &points) {
-        int size = static_cast<int>(points.size());
+    void convertToVector(const Eigen::MatrixXf &mat, vector<vec> &points) {
+        int size = points.size();
         for (int i=0; i<size; i++) {
             points.at(i).x = mat(0,i);
             points.at(i).y = mat(1,i);
@@ -28,21 +28,21 @@ namespace dataTypes {
         }
     }
 
-    Eigen::Vector3d convertToEigenVector3d(const Point3d &point) {
-        Eigen::Vector3d res;
+    Eigen::Vector3f convertToEigenVector(const vec &point) {
+        Eigen::Vector3f res;
         res(0,0) = point.x;
         res(1,0) = point.y;
         res(2,0) = point.z;
         return res;
     }
 
-    Point3d convertToPoint3d(const vec &point) {
-        Point3d point3d;
-        point3d.x = point.x;
-        point3d.y = point.y;
-        point3d.z = point.z;
-        return point3d;
-    }
+//    Point3d convertToPoint3d(const vec &point) {
+//        Point3d point3d;
+//        point3d.x = point.x;
+//        point3d.y = point.y;
+//        point3d.z = point.z;
+//        return point3d;
+//    }
 };
 
 #endif //LAB0_DATATYPES_H

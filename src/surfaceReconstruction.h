@@ -20,10 +20,9 @@ class surfaceReconstruction : public vvr::Scene {
         void draw() override;
         void reset() override;
         void resize() override;
-//        void createMesh(const vector<pair<Point3d, Vec3b>> &image_points, Mesh &mesh);
         void createGui();
         void showFrames(int index);
-        void getPointCLoud(vector< pair <Point3d,Vec3b>> &point_cloud, int &index);
+        void getPointCLoud(vector< pair <vec,Vec3b>> &point_cloud, int &index);
 
         static void change_frame(int x, void*);
         static void drawFrame(int index, void* object);
@@ -36,9 +35,9 @@ class surfaceReconstruction : public vvr::Scene {
         Mat getFrame(int index);
         void getDepthImage(int frame_index);
         void getImage(int frame_index);
-        vector<Point3d> getFirstData(vector< pair <Point3d,Vec3b>> &paired_data);
-        vector<Point3d> getData(vector<Point3d> points, int num);
-        vector<int> removePoints(vector<Point3d> & l_points, vector<Point3d> &r_points, float threshold);
+        VecArray getFirstData(vector< pair <vec,Vec3b>> &paired_data);
+        VecArray getData(VecArray points, int num);
+        vector<int> removePoints(VecArray & l_points, VecArray &r_points, float threshold);
         float vectorSum(const vector<float> &v);
         void normalize(vector<float> &values);
         float min(const vector<float> &values);
@@ -46,7 +45,7 @@ class surfaceReconstruction : public vvr::Scene {
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;
-        vector< pair <Point3d,Vec3b>> l_points, r_points, all_points;
+        vector< pair <vec,Vec3b>> l_points, r_points, all_points;
         vvr::Colour m_obj_col;
         math::Plane m_plane;
         PointCloud pcloud;

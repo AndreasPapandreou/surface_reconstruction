@@ -24,7 +24,7 @@ void PointCloud::create(const Mat &image, const Mat &depth_image)
 
     for (unsigned short i=0; i<camera.image_height; i++) {
         for (unsigned short j=0; j<camera.image_width; j++) {
-            Point3d point;
+            vec point;
             point.x = xgrid.at<short>(i,j)*depth_image.at<unsigned short>(i,j)/camera.constant/camera.mm_per_m;
             point.y = ygrid.at<short>(i,j)*depth_image.at<unsigned short>(i,j)/camera.constant/camera.mm_per_m;
             point.z = depth_image.at<unsigned short>(i,j)/camera.mm_per_m;
@@ -36,20 +36,20 @@ void PointCloud::create(const Mat &image, const Mat &depth_image)
     }
 }
 
-pair<Point3d,Vec3b> PointCloud::convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point)
-{
-    CameraConstants camera;
-    short xgrid, ygrid;
-    xgrid = static_cast<short>(point.x + 1 + (camera.topLeft[0] - 1) - camera.center[0]);
-    ygrid = static_cast<short>(point.y + 1 + (camera.topLeft[1] - 1) - camera.center[1]);
-
-    pair <Point3d,Vec3b> res;
-    res.first.x = xgrid*depth_image.at<unsigned short>(point.y,point.x)/camera.constant/camera.mm_per_m;
-    res.first.y = ygrid*depth_image.at<unsigned short>(point.y,point.x)/camera.constant/camera.mm_per_m;
-    res.first.z = depth_image.at<unsigned short>(point.y,point.x)/camera.mm_per_m;
-    res.second = image.at<Vec3b>(point.y,point.x);
-    return res;
-}
+//pair<Point3d,Vec3b> PointCloud::convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point)
+//{
+//    CameraConstants camera;
+//    short xgrid, ygrid;
+//    xgrid = static_cast<short>(point.x + 1 + (camera.topLeft[0] - 1) - camera.center[0]);
+//    ygrid = static_cast<short>(point.y + 1 + (camera.topLeft[1] - 1) - camera.center[1]);
+//
+//    pair <Point3d,Vec3b> res;
+//    res.first.x = xgrid*depth_image.at<unsigned short>(point.y,point.x)/camera.constant/camera.mm_per_m;
+//    res.first.y = ygrid*depth_image.at<unsigned short>(point.y,point.x)/camera.constant/camera.mm_per_m;
+//    res.first.z = depth_image.at<unsigned short>(point.y,point.x)/camera.mm_per_m;
+//    res.second = image.at<Vec3b>(point.y,point.x);
+//    return res;
+//}
 
 /* ------------------------------------------------------------------------------
  * Inputs       : One vector< pair <Point3d,Vec3b>>
@@ -57,7 +57,7 @@ pair<Point3d,Vec3b> PointCloud::convertTo3d(const Mat &image, const Mat &depth_i
  * Return       : -
  * ------------------------------------------------------------------------------
 */
-void PointCloud::getPoints(vector< pair <Point3d,Vec3b>> &points)
+void PointCloud::getPoints(vector< pair <vec,Vec3b>> &points)
 {
     points = m_points;
 }
@@ -92,19 +92,19 @@ Mat PointCloud::rotationMatrix(const Vec3d &degree)
     radian[2] = degree[2]*M_PI/180.; // z_axis
 
     // calculate rotation about x axis
-    Mat rotation_x = (Mat_<double>(3,3) <<
+    Mat rotation_x = (Mat_<float>(3,3) <<
             1, 0, 0,
             0, cos(radian[0]), -sin(radian[0]),
             0, sin(radian[0]), cos(radian[0]));
 
     // calculate rotation about y axis
-    Mat rotation_y = (Mat_<double>(3,3) <<
+    Mat rotation_y = (Mat_<float>(3,3) <<
             cos(radian[1]), 0, sin(radian[1]),
             0, 1, 0,
             -sin(radian[1]), 0, cos(radian[1]));
 
     // calculate rotation about z axis
-    Mat rotation_z = (Mat_<double>(3,3) <<
+    Mat rotation_z = (Mat_<float>(3,3) <<
             cos(radian[2]), -sin(radian[2]), 0,
             sin(radian[2]), cos(radian[2]), 0,
             0, 0, 1);
@@ -122,11 +122,11 @@ Mat PointCloud::rotationMatrix(const Vec3d &degree)
 */
 void PointCloud::rotate(const Mat &rotation_mat) {
     for (auto &point : m_points) {
-        Mat current_point = (Mat_<double>(3,1) << point.first.x, point.first.y, point.first.z);
+        Mat current_point = (Mat_<float>(3,1) << point.first.x, point.first.y, point.first.z);
         Mat result = rotation_mat*current_point;
-        point.first.x = result.at<double>(0);
-        point.first.y = result.at<double>(1);
-        point.first.z = result.at<double>(2);
+        point.first.x = result.at<float>(0);
+        point.first.y = result.at<float>(1);
+        point.first.z = result.at<float>(2);
     }
 }
 
@@ -363,32 +363,17 @@ void PointCloud::rotate(const Mat &rotation_mat) {
 ////        height = slide;
 //}
 
-void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPoints,  vector<float> &dist, int kn) {
-    //TODO delete m_src_KDTree and m_dst_KDTree pointers
-    //TODO i convert point from double to float -> check if that influence my solution
-
-    VecArray src_pts;
-    int size = src.size();
-    for (int i=0; i<size; i++) {
-        src_pts.emplace_back(vec(static_cast<float>(src.at(i).x),
-                                 static_cast<float>(src.at(i).y),
-                                 static_cast<float>(src.at(i).z)));
-    }
-
+void PointCloud::kNearest(const VecArray &src, VecArray &nearestPoints,  vector<float> &dist, int kn) {
     float distance;
-    Point3d p;
-    p.x = 0; p.y = 0; p.z = 0;
     const float t = vvr::getSeconds();
 
-    for (auto src_pt : src_pts) {
-//    for (int i=0; i<1000; i++) {
+    for (auto src_pt : src) {
         for (int j=0; j<kn; j++) {
-            const KDNode **nearests = new const KDNode*[kn];
+            const auto **nearests = new const KDNode*[kn];
             memset(nearests, NULL, kn * sizeof(KDNode*));
 
             m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &distance);
-//            m_dst_KDTree->kNearest(j, src_pts.at(i), m_dst_KDTree->root(), nearests, &dist);
-            nearestPoints.emplace_back(dataTypes::convertToPoint3d((*nearests)->split_point));
+            nearestPoints.emplace_back((*nearests)->split_point);
             dist.emplace_back(distance);
         }
     }
@@ -417,71 +402,73 @@ void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPo
 //        height = camera.image_height - top_row;
 //}
 
-pair<Eigen::Matrix3d, Eigen::Vector3d> PointCloud::computeRigidTransform(const vector<Point3d> &src, const vector<Point3d> &dst) {
-    int size = static_cast<int>(dst.size());
-    Point3d src_center = getCentroid(src);
-    Point3d dst_center = getCentroid(dst);
+pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::computeRigidTransform(const VecArray &src, const VecArray &dst) {
+    int size = dst.size();
+    vec src_center = getCentroid(src);
+    vec dst_center = getCentroid(dst);
 
-    Point3d src_centered_point, dst_centered_point;
-    Eigen::MatrixXd X(3,size), Y(3,size);
+    vec src_centered_point, dst_centered_point;
+    Eigen::MatrixXf X(3,size), Y(3,size);
     for (int i=0; i<size; i++) {
         src_centered_point = src.at(i) - src_center;
         dst_centered_point = dst.at(i) - dst_center;
 
-        //TODO check if the operation with integer(size) influences the double values of X and Y
-        X(0,i) = src_centered_point.x/size; X(1,i) = src_centered_point.y/size; X(2,i) = src_centered_point.z/size;
-        Y(0,i) = dst_centered_point.x/size; Y(1,i) = dst_centered_point.y/size; Y(2,i) = dst_centered_point.z/size;
+        X(0,i) = src_centered_point.x/(double)size;
+        X(1,i) = src_centered_point.y/(double)size;
+        X(2,i) = src_centered_point.z/(double)size;
+
+        Y(0,i) = dst_centered_point.x/(double)size;
+        Y(1,i) = dst_centered_point.y/(double)size;
+        Y(2,i) = dst_centered_point.z/(double)size;
     }
 
     // compute the covariance matrix
-    Eigen::Matrix3d S = Y*X.transpose();
-//    cout << "cov = " << S << endl;
+    Eigen::Matrix3f S = Y*X.transpose();
 
     // compute the singular value decomposition
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd;
+    Eigen::JacobiSVD<Eigen::MatrixXf> svd;
     svd.compute(S, Eigen::ComputeThinU | Eigen::ComputeThinV );
     if (!svd.computeU() || !svd.computeV()) {
         std::cerr << "decomposition error" << endl;
     }
 
     // extract right singular vectors
-    Eigen::Matrix3d V = svd.matrixV();
+    Eigen::Matrix3f V = svd.matrixV();
 
     // extract left singular vectors
-    Eigen::Matrix3d U = svd.matrixU();
+    Eigen::Matrix3f U = svd.matrixU();
 
     // create diagonal matrix
-    Eigen::MatrixXd diag_mat(3, 3);
+    Eigen::MatrixXf diag_mat(3, 3);
     diag_mat.setZero();
     diag_mat(0,0) = 1;
     diag_mat(1,1) = 1;
     diag_mat(2,2) = V.determinant()*U.transpose().determinant();
 
     // compute rotation matrix
-    Eigen::Matrix3d R = V*diag_mat*U.transpose();
+    Eigen::Matrix3f R = V*diag_mat*U.transpose();
 
     // compute translation vector
-    Eigen::Vector3d t = dataTypes::convertToEigenVector3d(src_center) - R*dataTypes::convertToEigenVector3d(dst_center);
+    Eigen::Vector3f t = dataTypes::convertToEigenVector(src_center) - R*dataTypes::convertToEigenVector(dst_center);
 
-    return pair<Eigen::Matrix3d, Eigen::Vector3d>(R, t);
+    return pair<Eigen::Matrix3f, Eigen::Vector3f>(R, t);
 }
 
-Point3d PointCloud::getCentroid(const vector<Point3d> &points) {
-    Point3d center(0,0,0);
+vec PointCloud::getCentroid(const VecArray &points) {
+    vec center(0,0,0);
     for (const auto &i : points) {
         center += i;
     }
-    int size = points.size();
-    return center/size;
+    return center/(float)points.size();
 }
 
-void PointCloud::transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points) {
+void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, VecArray &points) {
     int size = static_cast<int>(points.size());
 
-    Eigen::MatrixXd mat(3,size);
+    Eigen::MatrixXf mat(3,size);
     dataTypes::convertToEigenMat(points, mat);
 
-    Eigen::MatrixXd new_points(3,size);
+    Eigen::MatrixXf new_points(3,size);
     new_points = R_t.first*mat;
     for (int i=0; i<size; i++) {
         new_points(0,i) += R_t.second(0,0);
@@ -490,14 +477,3 @@ void PointCloud::transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, ve
     }
     dataTypes::convertToVector(new_points, points);
 }
-
-//double PointCloud::getError(const vector<Point3d> &src, const vector<Point3d> &dst) {
-//    double error{0.0};
-////    normalize(src, dst);
-//    for(int i=0; i<src.size(); i++) {
-//        Point3d diff_point = src.at(i) - dst.at(i);
-//        error += pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2);
-//    }
-//    // normalize the error
-//    return error;
-//}

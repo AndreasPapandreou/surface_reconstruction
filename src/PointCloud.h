@@ -19,8 +19,8 @@ struct CameraConstants {
     int image_height = 480;
     int image_width = 640;
 //    double mm_per_m{1000};
-    double mm_per_m{50.0};
-    double constant{570.3};
+    float mm_per_m{50.0f};
+    float constant{570.3f};
 };
 
 class PointCloud {
@@ -32,26 +32,21 @@ class PointCloud {
         void clearPoints();
         Mat rotationMatrix(const Vec3d &degree);
         void rotate(const Mat &rotation_mat);
-        pair<Eigen::Matrix3d, Eigen::Vector3d> computeRigidTransform(const vector<Point3d> &l_points, const vector<Point3d> &r_points);
-        void transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, vector<Point3d> &points);
-        void kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPoints, vector<float> &dist, int kn);
-//        double getError(const vector<Point3d> &src, const vector<Point3d> &dst);
-        Point3d getCentroid(const vector<Point3d> &src);
+        pair<Eigen::Matrix3f, Eigen::Vector3f> computeRigidTransform(const VecArray &l_points, const VecArray &r_points);
+        void transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, VecArray &points);
+        void kNearest(const VecArray &src, VecArray &nearestPoints, vector<float> &dist, int kn);
+        vec getCentroid(const VecArray &src);
 
-        void getPoints(vector< pair <Point3d,Vec3b>> &points);
+        void getPoints(vector< pair <vec,Vec3b>> &points);
         int getImageId(const ImageRGBD &image);
-//        void normalize(const vector<Point3d> &src, const vector<Point3d> &dst);
-//        double min(const vector<double> &values);
-//        double max(const vector<double> &values);
 
-        pair<Point3d,Vec3b> convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point);
-
+//        pair<Point3d,Vec3b> convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point);
 //        void findCorrespondingPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points);
 //        void findAdjacentPoints(const Mat &l_frame_rgb, const Mat &l_frame_rgbd);
 //        void validate(int &top_col, int &top_row, int &widht, int &height);
 
     public:
-        vector< pair <Point3d,Vec3b>> m_points;
+        vector< pair <vec,Vec3b>> m_points;
         KDTree *m_dst_KDTree;
 };
 

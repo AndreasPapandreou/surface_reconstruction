@@ -7,7 +7,6 @@ using namespace vvr;
 surfaceReconstruction::surfaceReconstruction(int &index) {
     initialize(index);
     createGui();
-//    pcloud = new PointCloud;
 }
 
 void surfaceReconstruction::initialize(int &index) {
@@ -77,13 +76,6 @@ void surfaceReconstruction::showFrames(int index) {
     waitKey(1);
 }
 
-//void surfaceReconstruction::createMesh(const vector< pair <Point3d,Vec3b>> &image_points, Mesh &mesh) {
-//    vector<vec> &mesh_vertices = m_mesh.getVertices();
-//    for (auto &point : image_points) {
-//        mesh_vertices.emplace_back(point.first.x, point.first.y, point.first.z);
-//    }
-//}
-
 void surfaceReconstruction::change_frame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     if (x >=1 && x < myClass->num_images)
@@ -114,8 +106,8 @@ void surfaceReconstruction::drawFrame(int index, void* object) {
 void surfaceReconstruction::alignFramesKnn(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->all_points.clear();
-    vector<Point3d> l_uncolored_points, r_uncolored_points, nearestPoints;
-    vector< pair <Point3d,Vec3b>> l_points, r_points;
+    VecArray l_uncolored_points, r_uncolored_points, nearestPoints;
+    vector< pair <vec,Vec3b>> l_points, r_points;
     vector<float> dist;
     int numFrames = {1};
 
@@ -129,27 +121,23 @@ void surfaceReconstruction::alignFramesKnn(int index, void* object) {
         myClass->getPointCLoud(r_points, myClass->r_frame_index);
         r_uncolored_points = myClass->getFirstData(r_points);
 
-        VecArray dst_pts;
-        int size = l_uncolored_points.size();
-        for (int j=0; j<size; j++) {
-            dst_pts.emplace_back(vec(static_cast<float>(l_uncolored_points.at(j).x),
-                                     static_cast<float>(l_uncolored_points.at(j).y),
-                                     static_cast<float>(l_uncolored_points.at(j).z)));
-        }
-        myClass->pcloud.m_dst_KDTree = new KDTree(dst_pts);
+        VecArray tree_data = l_uncolored_points;
+        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
 
+        float error{0.0f};
         int iteration{2};
         int counter{0};
-        float error{0.0f};
         while(counter < iteration) {
             nearestPoints.clear();
             dist.clear();
             myClass->pcloud.kNearest(r_uncolored_points, nearestPoints, dist, 1);
 
-            pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
+            pair<Eigen::Matrix3f, Eigen::Vector3f> R_t;
             R_t = myClass->pcloud.computeRigidTransform(nearestPoints, r_uncolored_points);
 
             myClass->pcloud.transformPoints(R_t, r_uncolored_points);
+
+            cout << "mean dist = " << myClass->vectorSum(dist)/(float)dist.size() << endl;
 
             myClass->normalize(dist);
             error = myClass->vectorSum(dist)/(float)dist.size();
@@ -231,23 +219,23 @@ void surfaceReconstruction::getImage(int frame_index) {
     image.getMat(image_mat);
 }
 
-vector<Point3d> surfaceReconstruction::getFirstData(vector< pair <Point3d,Vec3b>> &paired_data) {
-    vector<Point3d> data;
+VecArray surfaceReconstruction::getFirstData(vector< pair <vec,Vec3b>> &paired_data) {
+    VecArray data;
     for (auto &i : paired_data) {
         data.emplace_back(i.first);
     }
     return data;
 }
 
-vector<Point3d> surfaceReconstruction::getData(vector<Point3d> points, int num) {
-    vector<Point3d> result;
+VecArray surfaceReconstruction::getData(VecArray points, int num) {
+    VecArray result;
     for (int i=0; i<num; i++) {
         result.emplace_back(points.at(i));
     }
     return result;
 }
 
-void surfaceReconstruction::getPointCLoud(vector< pair <Point3d,Vec3b>> &point_cloud, int &index) {
+void surfaceReconstruction::getPointCLoud(vector< pair <vec,Vec3b>> &point_cloud, int &index) {
     pcloud.clearPoints();
     getImage(index);
     getDepthImage(index);
@@ -319,13 +307,12 @@ void surfaceReconstruction::drawAdjacentPoints() {
 //! other functionalities
 //!---------------------------------------------------------------------------------------------------------------------
 // if diff <= threshold -> remove them
-vector<int> surfaceReconstruction::removePoints(vector<Point3d> &l_points, vector<Point3d> &r_points, float threshold) {
+vector<int> surfaceReconstruction::removePoints(VecArray &l_points, VecArray &r_points, float threshold) {
     vector<int> indices;
     float value;
     for (int i=0; i<l_points.size(); i++) {
-            Point3d diff_point = l_points.at(i) - r_points.at(i);
-            value = abs(pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2));
-//            cout << "value = " << value << endl;
+            vec diff_point = l_points.at(i) - r_points.at(i);
+            value = static_cast<float>(abs(pow(diff_point.x, 2) + pow(diff_point.y, 2) + pow(diff_point.z, 2)));
             if (value > threshold)
                 indices.emplace_back(i);
     }
