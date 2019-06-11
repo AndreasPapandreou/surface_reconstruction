@@ -363,42 +363,7 @@ void PointCloud::rotate(const Mat &rotation_mat) {
 ////        height = slide;
 //}
 
-//void PointCloud::kNearest(const vector<Point3d> &src, const vector<Point3d> &dst, vector<Point3d> &nearestPoints, int kn) {
-//    //TODO delete m_src_KDTree and m_dst_KDTree pointers
-//    //TODO i convert point from double to float -> check if that influence my solution
-//
-//    KDTree *dst_KDTree;
-//    VecArray src_pts, dst_pts;
-//    int size = src.size();
-//    for (int i=0; i<size; i++) {
-//        src_pts.emplace_back(vec(src.at(i).x, src.at(i).y, src.at(i).z));
-//        dst_pts.emplace_back(vec(dst.at(i).x, dst.at(i).y, dst.at(i).z));
-//    }
-//
-//    dst_KDTree = new KDTree(dst_pts);
-//    float dist;
-//
-//    const float t = vvr::getSeconds();
-//
-//    //TODO update 5000 and do it in parametric way
-//    for (int i=0; i<src_pts.size(); i++) {
-////    for (int i=0; i<5000; i++) {
-//        for (int j=0; j<kn; j++) {
-//            const KDNode **nearests = new const KDNode*[kn];
-//            memset(nearests, NULL, kn * sizeof(KDNode*));
-//
-//            dst_KDTree->kNearest(j, src_pts.at(i), dst_KDTree->root(), nearests, &dist);
-//            nearestPoints.emplace_back(dataTypes::convertToPoint3d((*nearests)->split_point));
-//        }
-//    }
-//
-//    const float KDTree_knn_time = vvr::getSeconds() - t;
-////    echo(KDTree_knn_time);
-//    delete dst_KDTree;
-//}
-
-
-void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPoints, int kn) {
+void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPoints,  vector<float> &dist, int kn) {
     //TODO delete m_src_KDTree and m_dst_KDTree pointers
     //TODO i convert point from double to float -> check if that influence my solution
 
@@ -410,7 +375,9 @@ void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPo
                                  static_cast<float>(src.at(i).z)));
     }
 
-    float dist;
+    float distance;
+    Point3d p;
+    p.x = 0; p.y = 0; p.z = 0;
     const float t = vvr::getSeconds();
 
     for (auto src_pt : src_pts) {
@@ -419,9 +386,10 @@ void PointCloud::kNearest(const vector<Point3d> &src, vector<Point3d> &nearestPo
             const KDNode **nearests = new const KDNode*[kn];
             memset(nearests, NULL, kn * sizeof(KDNode*));
 
-            m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &dist);
+            m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &distance);
 //            m_dst_KDTree->kNearest(j, src_pts.at(i), m_dst_KDTree->root(), nearests, &dist);
             nearestPoints.emplace_back(dataTypes::convertToPoint3d((*nearests)->split_point));
+            dist.emplace_back(distance);
         }
     }
 
@@ -523,12 +491,13 @@ void PointCloud::transformPoints(pair<Eigen::Matrix3d, Eigen::Vector3d> &R_t, ve
     dataTypes::convertToVector(new_points, points);
 }
 
-double PointCloud::getError(const vector<Point3d> &src, const vector<Point3d> &dst) {
-    double error{0.0};
-    for(int i=0; i<src.size(); i++) {
-        Point3d diff_point = src.at(i) - dst.at(i);
-        error += pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2);
-    }
-    return error;
-}
-
+//double PointCloud::getError(const vector<Point3d> &src, const vector<Point3d> &dst) {
+//    double error{0.0};
+////    normalize(src, dst);
+//    for(int i=0; i<src.size(); i++) {
+//        Point3d diff_point = src.at(i) - dst.at(i);
+//        error += pow(diff_point.x,2) + pow(diff_point.y,2) + pow(diff_point.z,2);
+//    }
+//    // normalize the error
+//    return error;
+//}

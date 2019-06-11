@@ -111,66 +111,12 @@ void surfaceReconstruction::drawFrame(int index, void* object) {
 }
 
 // without considering the colors
-//void surfaceReconstruction::alignFramesKnn(int index, void* object) {
-//    auto * myClass = (surfaceReconstruction*) object;
-//    myClass->pcloud->clearPoints();
-//
-//    vector< pair <Point3d,Vec3b>> l_points;
-//    myClass->getPointCLoud(l_points, myClass->l_frame_index);
-//    vector<Point3d> l_uncolored_points = myClass->getFirstData(l_points);
-//
-//    myClass->pcloud->clearPoints();
-//
-//    vector< pair <Point3d,Vec3b>> r_points;
-//    myClass->getPointCLoud(r_points, myClass->r_frame_index);
-//    vector<Point3d> r_uncolored_points = myClass->getFirstData(r_points);
-//
-//    int iteration{5};
-//    int counter{0};
-//    while(counter < iteration) {
-//        vector<Point3d> nearestPoints;
-//        myClass->pcloud->kNearest(l_uncolored_points, r_uncolored_points, nearestPoints, 1);
-//
-//        pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
-//        R_t = myClass->pcloud->computeRigidTransform(l_uncolored_points, nearestPoints);
-//        myClass->pcloud->transformPoints(R_t, r_uncolored_points);
-//        myClass->pcloud->transformPoints(R_t, nearestPoints);
-//
-//        double error = myClass->pcloud->getError(l_uncolored_points, nearestPoints);
-//        cout << "iteration = " << counter << endl;
-//        cout << "error = " << error << endl << endl;
-//
-//        counter++;
-//
-//        // refresh data in order to draw them
-//        if (iteration == counter) {
-//            vector<int> indeces = myClass->removePoints(l_uncolored_points, nearestPoints, 1.0f);
-//            cout << "indices size = " << indeces.size() << endl;
-//
-//            myClass->l_points.clear();
-//            for (int i=0; i<indeces.size(); i++) {
-//                myClass->l_points.emplace_back(l_uncolored_points.at(i), l_points.at(i).second);
-//            }
-//
-//            myClass->r_points.clear();
-//            for (int i=0; i<r_uncolored_points.size(); i++) {
-//                myClass->r_points.emplace_back(r_uncolored_points.at(i), r_points.at(i).second);
-//            }
-////            myClass->l_points = l_points;
-//
-//            cout << "l_points = " << myClass->l_points.size() << endl;
-//            cout << "r_points = " << myClass->r_points.size() << endl;
-//        }
-//    }
-//    myClass->m_flag = true;
-//}
-
-// without considering the colors
 void surfaceReconstruction::alignFramesKnn(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->all_points.clear();
     vector<Point3d> l_uncolored_points, r_uncolored_points, nearestPoints;
     vector< pair <Point3d,Vec3b>> l_points, r_points;
+    vector<float> dist;
     int numFrames = {1};
 
     myClass->getPointCLoud(l_points, myClass->l_frame_index);
@@ -192,18 +138,21 @@ void surfaceReconstruction::alignFramesKnn(int index, void* object) {
         }
         myClass->pcloud.m_dst_KDTree = new KDTree(dst_pts);
 
-        int iteration{3};
+        int iteration{2};
         int counter{0};
+        float error{0.0f};
         while(counter < iteration) {
             nearestPoints.clear();
-            myClass->pcloud.kNearest(r_uncolored_points, nearestPoints, 1);
+            dist.clear();
+            myClass->pcloud.kNearest(r_uncolored_points, nearestPoints, dist, 1);
 
             pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
             R_t = myClass->pcloud.computeRigidTransform(nearestPoints, r_uncolored_points);
 
             myClass->pcloud.transformPoints(R_t, r_uncolored_points);
 
-            double error = myClass->pcloud.getError(r_uncolored_points, nearestPoints);
+            myClass->normalize(dist);
+            error = myClass->vectorSum(dist)/(float)dist.size();
             cout << "iteration = " << counter << endl;
             cout << "error = " << error << endl << endl;
 
@@ -211,7 +160,7 @@ void surfaceReconstruction::alignFramesKnn(int index, void* object) {
 
             // refresh data in order to draw them
             if (iteration == counter) {
-                vector<int> indices = myClass->removePoints(l_uncolored_points, nearestPoints, 0.005f);
+                vector<int> indices = myClass->removePoints(l_uncolored_points, nearestPoints, 0.1f);
                 for (int j = 0; j < indices.size(); j++) {
                     myClass->all_points.emplace_back(l_uncolored_points.at(j), l_points.at(j).second);
                 }
@@ -267,61 +216,6 @@ void surfaceReconstruction::resize()
 }
 //!---------------------------------------------------------------------------------------------------------------------
 
-//void surfaceReconstruction::alignFrames(int index, void* object) {
-//    auto * myClass = (surfaceReconstruction*) object;
-//    myClass->pcloud.clearPoints();
-//    myClass->m_mesh.getVertices().clear();
-//
-//    myClass->getImage(myClass->l_frame_index);
-//    myClass->getDepthImage(myClass->l_frame_index);
-//    const Mat l_frame_rgb = myClass->image_mat;
-//    const Mat l_frame_rgbd = myClass->depth_mat;
-//    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
-//
-//    Vec3d degree = {180.0, 0.0, 0.0};
-//    Mat rotation = myClass->pcloud.rotationMatrix(degree);
-//    myClass->pcloud.rotate(rotation);
-//    vector< pair <Point3d,Vec3b>> l_initial_points = myClass->pcloud.m_points;
-//
-//    myClass->pcloud.clearPoints();
-//
-//    myClass->getImage(myClass->r_frame_index);
-//    myClass->getDepthImage(myClass->r_frame_index);
-//    const Mat r_frame_rgb = myClass->image_mat;
-//    const Mat r_frame_rgbd = myClass->depth_mat;
-//    myClass->pcloud.create(myClass->image_mat, myClass->depth_mat);
-//    myClass->pcloud.rotate(rotation);
-//    vector< pair <Point3d,Vec3b>> r_initial_points = myClass->pcloud.m_points;
-//
-//    myClass->l_points.clear();
-//    myClass->r_points.clear();
-//    myClass->pcloud.findCorrespondingPoints(l_frame_rgb, r_frame_rgb, l_frame_rgbd, r_frame_rgbd, myClass->l_points, myClass->r_points);
-//
-//    // exatrct only the point without its colors
-//    vector<Point3d> l_corresponding_points, r_corresponding_points;
-//    for (int i=0; i<myClass->l_points.size(); i++) {
-//        l_corresponding_points.emplace_back(myClass->l_points.at(i).first);
-//        r_corresponding_points.emplace_back(myClass->r_points.at(i).first);
-//    }
-//
-//    pair<Eigen::Matrix3d, Eigen::Vector3d> R_t;
-//    R_t = myClass->pcloud.computeRigidTransform(l_corresponding_points, r_corresponding_points);
-//
-//    vector<Point3d> r_transformed_points;
-//    for (auto &r_initial_point : r_initial_points) {
-//        r_transformed_points.emplace_back(r_initial_point.first);
-//    }
-//
-//    myClass->pcloud.tranformPoints(R_t, r_transformed_points);
-//
-//    myClass->r_points.clear();
-//    myClass->l_points = l_initial_points;
-//    for (int i=0; i<r_transformed_points.size(); i++) {
-//        myClass->r_points.emplace_back(r_transformed_points.at(i), r_initial_points.at(i).second);
-//    }
-//    myClass->m_flag = true;
-//}
-
 //!---------------------------------------------------------------------------------------------------------------------
 //! getter functions
 //!---------------------------------------------------------------------------------------------------------------------
@@ -371,6 +265,29 @@ Mat surfaceReconstruction::getFrame(int index) {
     string frame_to_string = frame_to_stream.str(); // the str() coverts number into string
     return imread(generic::stereo_dir + "/" + image_prefix + "_" + frame_to_string + ".png");
 }
+
+float surfaceReconstruction::vectorSum(const vector<float> &v) {
+    float initial_sum{0.0f};
+    return accumulate(v.begin(), v.end(), initial_sum);
+}
+
+float surfaceReconstruction::min(const vector<float> &values) {
+    float min_value{0.0f};
+    for (const auto &i : values) {
+        if (i < min_value)
+            min_value = i;
+    }
+    return min_value;
+}
+
+float surfaceReconstruction::max(const vector<float> &values) {
+    float max_value{values.at(0)};
+    for(int i=1; i<values.size(); i++) {
+        if (i > max_value)
+            max_value = i;
+    }
+    return max_value;
+}
 //!---------------------------------------------------------------------------------------------------------------------
 
 //!---------------------------------------------------------------------------------------------------------------------
@@ -390,15 +307,6 @@ void surfaceReconstruction::draw() {
 
 void surfaceReconstruction::drawAdjacentPoints() {
     cout << "all_points size = " << all_points.size() << endl;
-
-//    for (auto &l_point : l_points) {
-//        Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
-//                Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
-//        }
-//    for (auto &r_point : r_points) {
-//        Point3D(r_point.first.x, r_point.first.y, r_point.first.z,
-//                Colour(r_point.second[2], r_point.second[1], r_point.second[0])).draw();
-//    }
     for (auto &r_point : all_points) {
         Point3D(r_point.first.x, r_point.first.y, r_point.first.z,
                 Colour(r_point.second[2], r_point.second[1], r_point.second[0])).draw();
@@ -422,6 +330,15 @@ vector<int> surfaceReconstruction::removePoints(vector<Point3d> &l_points, vecto
                 indices.emplace_back(i);
     }
     return indices;
+}
+
+void surfaceReconstruction::normalize(vector<float> &values) {
+    float min_value = min(values);
+    float max_value = max(values);
+    float diff = max_value - min_value;
+    for (float &value : values) {
+        value = (value - min_value)/diff;
+    }
 }
 
 //!---------------------------------------------------------------------------------------------------------------------

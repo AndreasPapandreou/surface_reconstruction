@@ -39,6 +39,10 @@ class surfaceReconstruction : public vvr::Scene {
         vector<Point3d> getFirstData(vector< pair <Point3d,Vec3b>> &paired_data);
         vector<Point3d> getData(vector<Point3d> points, int num);
         vector<int> removePoints(vector<Point3d> & l_points, vector<Point3d> &r_points, float threshold);
+        float vectorSum(const vector<float> &v);
+        void normalize(vector<float> &values);
+        float min(const vector<float> &values);
+        float max(const vector<float> &values);
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;
