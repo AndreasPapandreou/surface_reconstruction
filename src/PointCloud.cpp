@@ -638,8 +638,8 @@ void PointCloud::getEdges(const Mat &img, VecArray &edges) {
     }
 }
 
-void PointCloud::icp(VecArray &src_points, VecArray &dst_points, float &mean_distance, float &error, int &iterations) {
-    pair<Eigen::Matrix3f, Eigen::Vector3f> R_t;
+pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, float &mean_distance, float &error, int &iterations) {
+    vector<pair<Eigen::Matrix3f, Eigen::Vector3f>> all_R_t;
     VecArray nearestPoints;
     vector<float> dist;
 
@@ -650,10 +650,9 @@ void PointCloud::icp(VecArray &src_points, VecArray &dst_points, float &mean_dis
 
         kNearest(src_points, nearestPoints, dist, 1);
 
-        R_t = computeRigidTransform(nearestPoints, src_points);
+        all_R_t.emplace_back(computeRigidTransform(nearestPoints, src_points));
 
-        transformPoints(R_t, src_points);
-        transformPoints(R_t, dst_points);
+        transformPoints(all_R_t.at(all_R_t.size()-1), src_points);
 
         mean_distance = vectorSum(dist)/(float)dist.size();
         normalize(dist);
@@ -663,32 +662,14 @@ void PointCloud::icp(VecArray &src_points, VecArray &dst_points, float &mean_dis
         cout << "mean_dist = " << mean_distance << endl;
         cout << "error = " << error << endl;
     }
-}
 
-void PointCloud::icp(VecArray &dst_points, float &mean_distance, float &error, int &iterations) {
     pair<Eigen::Matrix3f, Eigen::Vector3f> R_t;
-    VecArray nearestPoints;
-    vector<float> dist;
-
-    int counter{0};
-    while(counter++ < iterations) {
-        nearestPoints.clear();
-        dist.clear();
-
-        kNearest(dst_points, nearestPoints, dist, 1);
-
-        R_t = computeRigidTransform(nearestPoints, dst_points);
-
-        transformPoints(R_t, dst_points);
-
-        mean_distance = vectorSum(dist)/(float)dist.size();
-        normalize(dist);
-        error = vectorSum(dist)/(float)dist.size();
-
-        cout << "iter = " << counter << endl;
-        cout << "mean_dist = " << mean_distance << endl;
-        cout << "error = " << error << endl;
+    R_t = all_R_t.at(all_R_t.size()-1);
+    for(int i=all_R_t.size()-2; i>=0; i--) {
+        R_t.first *= all_R_t.at(i).first;
+        R_t.second += all_R_t.at(i).second;
     }
+    return R_t;
 }
 
 void PointCloud::normalize(vector<float> &values) {

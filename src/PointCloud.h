@@ -54,8 +54,7 @@ class PointCloud {
         void sobel(const Mat &img, Mat &new_img);
         void thresholding(const Mat &img, Mat &new_img);
         void getEdges(const Mat &img, VecArray &edges);
-        void icp(VecArray &src_points, VecArray &dst_points, float &mean_distance, float &error, int &iterations);
-        void icp(VecArray &dst_points, float &mean_distance, float &error, int &iterations);
+        pair<Eigen::Matrix3f, Eigen::Vector3f> icp(VecArray &src_points, float &mean_distance, float &error, int &iterations);
         float vectorSum(const vector<float> &v);
         void normalize(vector<float> &values);
         float min(const vector<float> &values);

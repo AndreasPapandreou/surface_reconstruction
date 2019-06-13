@@ -144,30 +144,79 @@ void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
     myClass->pcloud.thresholding(sobel_img, thresholded_img);
     myClass->pcloud.getEdges(thresholded_img, l_edges);
 
-//    r_points.clear();
-    myClass->getPointCLoud(r_points, myClass->r_frame_index);
-    r_uncolored_points = myClass->getFirstData(r_points);
+    int frames{1};
+    while(frames-- > 0) {
+        r_points.clear();
+        myClass->getPointCLoud(r_points, myClass->r_frame_index);
+        r_uncolored_points = myClass->getFirstData(r_points);
 
-    myClass->pcloud.sobel(myClass->image_mat, sobel_img);
-    myClass->pcloud.thresholding(sobel_img, thresholded_img);
-    myClass->pcloud.getEdges(thresholded_img, r_edges);
+        myClass->pcloud.sobel(myClass->image_mat, sobel_img);
+        myClass->pcloud.thresholding(sobel_img, thresholded_img);
+        myClass->pcloud.getEdges(thresholded_img, r_edges);
 
-    VecArray tree_data = l_edges;
-    myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
+        VecArray tree_data = l_edges;
+        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
 
-    float error;
-    int iterations{10};
-    float mean_distance;
+        float error;
+        int iterations{10};
+        float mean_distance;
 
-    cout << "icp started..." << endl;
-    myClass->pcloud.icp(r_edges, r_uncolored_points, mean_distance, error, iterations);
+        cout << "icp started..." << endl;
+        pair<Eigen::Matrix3f, Eigen::Vector3f> R_t = myClass->pcloud.icp(r_edges, mean_distance, error, iterations);
 
-    myClass->all_points = l_points;
-    for (int j=0; j<r_uncolored_points.size(); j++) {
-        myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+        myClass->pcloud.transformPoints(R_t, r_uncolored_points);
+
+        for (auto &l_point : l_points) {
+            myClass->all_points.emplace_back(l_point);
+        }
+        for (int j=0; j<r_uncolored_points.size(); j++) {
+            myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+        }
+
+        l_points = r_points;
+        l_edges = r_edges;
+        myClass->r_frame_index++;
     }
     myClass->m_flag = true;
 }
+
+//void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
+//    auto * myClass = (surfaceReconstruction*) object;
+//    myClass->all_points.clear();
+//
+//    VecArray l_edges, r_edges, r_uncolored_points;
+//    vector<pair<vec,Vec3b>> l_points, r_points;
+//    Mat sobel_img, thresholded_img;
+//
+//    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+//    myClass->pcloud.sobel(myClass->image_mat, sobel_img);
+//    myClass->pcloud.thresholding(sobel_img, thresholded_img);
+//    myClass->pcloud.getEdges(thresholded_img, l_edges);
+//
+////    r_points.clear();
+//    myClass->getPointCLoud(r_points, myClass->r_frame_index);
+//    r_uncolored_points = myClass->getFirstData(r_points);
+//
+//    myClass->pcloud.sobel(myClass->image_mat, sobel_img);
+//    myClass->pcloud.thresholding(sobel_img, thresholded_img);
+//    myClass->pcloud.getEdges(thresholded_img, r_edges);
+//
+//    VecArray tree_data = l_edges;
+//    myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
+//
+//    float error;
+//    int iterations{10};
+//    float mean_distance;
+//
+//    cout << "icp started..." << endl;
+//    myClass->pcloud.icp(r_edges, r_uncolored_points, mean_distance, error, iterations);
+//
+//    myClass->all_points = l_points;
+//    for (int j=0; j<r_uncolored_points.size(); j++) {
+//        myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+//    }
+//    myClass->m_flag = true;
+//}
 
 // considering the colors
 //void surfaceReconstruction::alignFramesKnn(int index, void* object) {
