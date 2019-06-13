@@ -9,12 +9,14 @@ namespace generic {
 
     enum DatasetType {
         meeting_small_1 = 1,
-        desk_1 = 2
+        desk_1 = 2,
+        test = 3
     };
 
     enum DatasetSize {
         meeting_small_1_size = 180,
-        desk_1_size = 98
+        desk_1_size = 98,
+        test_size = 1
     };
 
     string stereo_dir = "../data/";
@@ -25,6 +27,8 @@ namespace generic {
                 return meeting_small_1;
             case 1 :
                 return desk_1;
+            case 2 :
+                return test;
             default:break;
         }
     }
@@ -35,6 +39,8 @@ namespace generic {
                 return meeting_small_1_size;
             case 1 :
                 return desk_1_size;
+            case 2 :
+                return test_size;
             default:break;
         }
     }
@@ -45,6 +51,8 @@ namespace generic {
                 return "meeting_small_1";
             case desk_1 :
                 return "desk_1";
+            case test :
+                return "test";
             default:break;
         }
     }

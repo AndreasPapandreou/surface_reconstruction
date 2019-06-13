@@ -19,6 +19,15 @@ namespace dataTypes {
         }
     }
 
+//    void convertToEigenMat(const VecArray4 &points, Eigen::MatrixXf &mat) {
+//        int size = points.size();
+//        for (int i=0; i<size; i++) {
+//            mat(0,i) = points.at(i).x;
+//            mat(1,i) = points.at(i).y;
+//            mat(2,i) = points.at(i).z;
+//        }
+//    }
+
     void convertToVector(const Eigen::MatrixXf &mat, vector<vec> &points) {
         int size = points.size();
         for (int i=0; i<size; i++) {
@@ -27,6 +36,15 @@ namespace dataTypes {
             points.at(i).z = mat(2,i);
         }
     }
+
+//    void convertToVector(const Eigen::MatrixXf &mat, VecArray4 &points) {
+//        int size = points.size();
+//        for (int i=0; i<size; i++) {
+//            points.at(i).x = mat(0,i);
+//            points.at(i).y = mat(1,i);
+//            points.at(i).z = mat(2,i);
+//        }
+//    }
 
     Eigen::Vector3f convertToEigenVector(const vec &point) {
         Eigen::Vector3f res;

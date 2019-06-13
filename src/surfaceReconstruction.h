@@ -11,6 +11,8 @@
 using namespace std;
 using namespace vvr;
 
+typedef std::vector<float4> VecArray4;
+
 class surfaceReconstruction : public vvr::Scene {
     public:
         surfaceReconstruction(int &index);
@@ -30,6 +32,7 @@ class surfaceReconstruction : public vvr::Scene {
         static void drawRightFrame(int x, void*);
         static void alignFrames(int x, void*);
         static void alignFramesKnn(int x, void*);
+        static void alignFramesKnnSobel(int x, void*);
         void drawAdjacentPoints();
 
         Mat getFrame(int index);
@@ -38,10 +41,16 @@ class surfaceReconstruction : public vvr::Scene {
         VecArray getFirstData(vector< pair <vec,Vec3b>> &paired_data);
         VecArray getData(VecArray points, int num);
         vector<int> removePoints(VecArray & l_points, VecArray &r_points, float threshold);
+//        vector<int> removePoints(VecArray4 & l_points, VecArray4 &r_points, float threshold);
         float vectorSum(const vector<float> &v);
         void normalize(vector<float> &values);
+//        void normalize(VecArray4 &values);
         float min(const vector<float> &values);
+//        vec min(const VecArray4 &values);
         float max(const vector<float> &values);
+//        vec max(const VecArray4 &values);
+//        void RGBtoHSV(const Vec3b color, float& fH, float& fS, float& fV);
+//        void getColorPoints(const vector< pair <vec,Vec3b>> &p1, VecArray4 &p2);
 
     private:
         Mat depth_mat, image_mat, r_frame, l_frame;

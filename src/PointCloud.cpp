@@ -73,7 +73,7 @@ void PointCloud::clearPoints()
  * Return       : The id of current depth image.
  * ------------------------------------------------------------------------------
 */
-int PointCloud::getImageId(const ImageRGBD &image)
+int PointCloud::getRgbdId(const ImageRGBD &image)
 {
     return image.m_id;
 }
@@ -363,6 +363,7 @@ void PointCloud::rotate(const Mat &rotation_mat) {
 ////        height = slide;
 //}
 
+// not considering the colors
 void PointCloud::kNearest(const VecArray &src, VecArray &nearestPoints,  vector<float> &dist, int kn) {
     float distance;
     const float t = vvr::getSeconds();
@@ -379,8 +380,28 @@ void PointCloud::kNearest(const VecArray &src, VecArray &nearestPoints,  vector<
     }
 
     const float KDTree_knn_time = vvr::getSeconds() - t;
-    echo(KDTree_knn_time);
+//    echo(KDTree_knn_time);
 }
+
+// considering the colors
+//void PointCloud::kNearest(const VecArray4 &src, VecArray4 &nearestPoints,  vector<float> &dist, int kn, float &weight) {
+//    float distance;
+//    const float t = vvr::getSeconds();
+//
+//    for (auto src_pt : src) {
+//        for (int j=0; j<kn; j++) {
+//            const auto **nearests = new const KDNode2*[kn];
+//            memset(nearests, NULL, kn * sizeof(KDNode2*));
+//
+//            m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &distance, weight);
+//            nearestPoints.emplace_back((*nearests)->split_point);
+//            dist.emplace_back(distance);
+//        }
+//    }
+//
+//    const float KDTree_knn_time = vvr::getSeconds() - t;
+//    echo(KDTree_knn_time);
+//}
 
 //void PointCloud::validate(int &top_col, int &top_row, int &width, int &height) {
 //    CameraConstants camera;
@@ -454,6 +475,69 @@ pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::computeRigidTransform(const V
     return pair<Eigen::Matrix3f, Eigen::Vector3f>(R, t);
 }
 
+//pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::computeRigidTransform(const VecArray4 &src4d, const VecArray4 &dst4d) {
+//    VecArray src, dst;
+//    vec p;
+//    for (auto i : src4d) {
+//        p.x = i.x; p.y = i.y; p.z = i.z;
+//        src.emplace_back(p);
+//    }
+//    for (auto i : dst4d) {
+//        p.x = i.x; p.y = i.y; p.z = i.z;
+//        dst.emplace_back(p);
+//    }
+//
+//    int size = dst.size();
+//    vec src_center = getCentroid(src);
+//    vec dst_center = getCentroid(dst);
+//
+//    vec src_centered_point, dst_centered_point;
+//    Eigen::MatrixXf X(3,size), Y(3,size);
+//    for (int i=0; i<size; i++) {
+//        src_centered_point = src.at(i) - src_center;
+//        dst_centered_point = dst.at(i) - dst_center;
+//
+//        X(0,i) = src_centered_point.x/(double)size;
+//        X(1,i) = src_centered_point.y/(double)size;
+//        X(2,i) = src_centered_point.z/(double)size;
+//
+//        Y(0,i) = dst_centered_point.x/(double)size;
+//        Y(1,i) = dst_centered_point.y/(double)size;
+//        Y(2,i) = dst_centered_point.z/(double)size;
+//    }
+//
+//    // compute the covariance matrix
+//    Eigen::Matrix3f S = Y*X.transpose();
+//
+//    // compute the singular value decomposition
+//    Eigen::JacobiSVD<Eigen::MatrixXf> svd;
+//    svd.compute(S, Eigen::ComputeThinU | Eigen::ComputeThinV );
+//    if (!svd.computeU() || !svd.computeV()) {
+//        std::cerr << "decomposition error" << endl;
+//    }
+//
+//    // extract right singular vectors
+//    Eigen::Matrix3f V = svd.matrixV();
+//
+//    // extract left singular vectors
+//    Eigen::Matrix3f U = svd.matrixU();
+//
+//    // create diagonal matrix
+//    Eigen::MatrixXf diag_mat(3, 3);
+//    diag_mat.setZero();
+//    diag_mat(0,0) = 1;
+//    diag_mat(1,1) = 1;
+//    diag_mat(2,2) = V.determinant()*U.transpose().determinant();
+//
+//    // compute rotation matrix
+//    Eigen::Matrix3f R = V*diag_mat*U.transpose();
+//
+//    // compute translation vector
+//    Eigen::Vector3f t = dataTypes::convertToEigenVector(src_center) - R*dataTypes::convertToEigenVector(dst_center);
+//
+//    return pair<Eigen::Matrix3f, Eigen::Vector3f>(R, t);
+//}
+
 vec PointCloud::getCentroid(const VecArray &points) {
     vec center(0,0,0);
     for (const auto &i : points) {
@@ -477,3 +561,172 @@ void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, Ve
     }
     dataTypes::convertToVector(new_points, points);
 }
+
+//void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, VecArray4 &points) {
+//    int size = static_cast<int>(points.size());
+//
+//    Eigen::MatrixXf mat(3,size);
+//    dataTypes::convertToEigenMat(points, mat);
+//
+//    Eigen::MatrixXf new_points(3,size);
+//    new_points = R_t.first*mat;
+//    for (int i=0; i<size; i++) {
+//        new_points(0,i) += R_t.second(0,0);
+//        new_points(1,i) += R_t.second(1,0);
+//        new_points(2,i) += R_t.second(2,0);
+//    }
+//    dataTypes::convertToVector(new_points, points);
+//}
+
+void PointCloud::sobel(const Mat &img, Mat &new_img) {
+    Mat img_gray;
+    char* window_name = "Sobel";
+    // default values
+    int scale = 1;
+    int delta = 0;
+//    int ddepth = CV_16S;
+//    int ddepth = CV_16U;
+    int ddepth = CV_8UC1;
+
+    GaussianBlur( img, img, Size(3,3), 0, 0, BORDER_DEFAULT );
+
+    /// Convert it to gray
+    cvtColor( img, img_gray, CV_BGR2GRAY );
+
+    /// Create window
+    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+
+    /// Generate grad_x and grad_y
+    Mat grad_x, grad_y;
+    Mat abs_grad_x, abs_grad_y;
+
+    /// Gradient X
+    Sobel( img_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT );
+    convertScaleAbs( grad_x, abs_grad_x );
+
+    /// Gradient Y
+    Sobel( img_gray, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
+    convertScaleAbs( grad_y, abs_grad_y );
+
+    /// Total Gradient (approximate)
+    addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, new_img );
+
+    imshow( window_name, new_img );
+//    waitKey(0);
+}
+
+// img must br gray
+void PointCloud::thresholding(const Mat &img, Mat &new_img) {
+//  variable that representing the value that is to be given if pixel value is more than the threshold value.
+    double max_value = 255.0;
+    char* window_name = "THRESH_BINARY";
+    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+    adaptiveThreshold(img, new_img, max_value, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 11, 12);
+    imshow( window_name, new_img );
+}
+
+void PointCloud::getEdges(const Mat &img, VecArray &edges) {
+    CameraConstants camera;
+    uchar val;
+    for (int i=0; i<camera.image_height; i++) {
+        for (int j=0; j<camera.image_width; j++) {
+            val = img.at<uchar>(i,j);
+            if ((int)val == 0) {
+                edges.emplace_back(m_points.at(i*camera.image_width + j).first);
+            }
+        }
+    }
+}
+
+void PointCloud::icp(VecArray &src_points, VecArray &dst_points, float &mean_distance, float &error, int &iterations) {
+    pair<Eigen::Matrix3f, Eigen::Vector3f> R_t;
+    VecArray nearestPoints;
+    vector<float> dist;
+
+    int counter{0};
+    while(counter++ < iterations) {
+        nearestPoints.clear();
+        dist.clear();
+
+        kNearest(src_points, nearestPoints, dist, 1);
+
+        R_t = computeRigidTransform(nearestPoints, src_points);
+
+        transformPoints(R_t, src_points);
+        transformPoints(R_t, dst_points);
+
+        mean_distance = vectorSum(dist)/(float)dist.size();
+        normalize(dist);
+        error = vectorSum(dist)/(float)dist.size();
+
+        cout << "iter = " << counter << endl;
+        cout << "mean_dist = " << mean_distance << endl;
+        cout << "error = " << error << endl;
+    }
+}
+
+void PointCloud::icp(VecArray &dst_points, float &mean_distance, float &error, int &iterations) {
+    pair<Eigen::Matrix3f, Eigen::Vector3f> R_t;
+    VecArray nearestPoints;
+    vector<float> dist;
+
+    int counter{0};
+    while(counter++ < iterations) {
+        nearestPoints.clear();
+        dist.clear();
+
+        kNearest(dst_points, nearestPoints, dist, 1);
+
+        R_t = computeRigidTransform(nearestPoints, dst_points);
+
+        transformPoints(R_t, dst_points);
+
+        mean_distance = vectorSum(dist)/(float)dist.size();
+        normalize(dist);
+        error = vectorSum(dist)/(float)dist.size();
+
+        cout << "iter = " << counter << endl;
+        cout << "mean_dist = " << mean_distance << endl;
+        cout << "error = " << error << endl;
+    }
+}
+
+void PointCloud::normalize(vector<float> &values) {
+    float min_value = min(values);
+    float max_value = max(values);
+    float diff = max_value - min_value;
+    for (float &value : values) {
+        value = (value - min_value)/diff;
+    }
+}
+
+float PointCloud::vectorSum(const vector<float> &v) {
+    float initial_sum{0.0f};
+    return accumulate(v.begin(), v.end(), initial_sum);
+}
+
+float PointCloud::min(const vector<float> &values) {
+    float min_value{0.0f};
+    for (const auto &i : values) {
+        if (i < min_value)
+            min_value = i;
+    }
+    return min_value;
+}
+
+float PointCloud::max(const vector<float> &values) {
+    float max_value{values.at(0)};
+    for(int i=1; i<values.size(); i++) {
+        if (i > max_value)
+            max_value = i;
+    }
+    return max_value;
+}
+
+
+
+
+
+
+
+
