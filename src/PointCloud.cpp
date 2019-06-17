@@ -580,12 +580,9 @@ void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, Ve
 
 void PointCloud::sobel(const Mat &img, Mat &new_img) {
     Mat img_gray;
-    char* window_name = "Sobel";
-    // default values
+    std::string window_name = "Sobel";
     int scale = 1;
     int delta = 0;
-//    int ddepth = CV_16S;
-//    int ddepth = CV_16U;
     int ddepth = CV_8UC1;
 
     GaussianBlur( img, img, Size(3,3), 0, 0, BORDER_DEFAULT );
@@ -615,33 +612,118 @@ void PointCloud::sobel(const Mat &img, Mat &new_img) {
 //    waitKey(0);
 }
 
+void PointCloud::laplacian(const Mat &img, Mat &new_img) {
+
+    Mat img_gray;
+    int kernel_size = 3;
+    int scale = 1;
+    int delta = 0;
+    int ddepth = CV_8UC1;
+    std::string window_name = "Laplace";
+
+    int c;
+
+    /// Remove noise by blurring with a Gaussian filter
+    GaussianBlur( img, img, Size(3,3), 0, 0, BORDER_DEFAULT );
+
+    /// Convert the image to grayscale
+    cvtColor( img, img_gray, CV_BGR2GRAY );
+
+    /// Create window
+    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+
+    /// Apply Laplace function
+    Mat abs_dst;
+
+    Laplacian( img_gray, new_img, ddepth, kernel_size, scale, delta, BORDER_DEFAULT );
+    convertScaleAbs( new_img, abs_dst );
+
+    /// Show what you got
+    imshow( window_name, abs_dst );
+
+//    waitKey(0);
+
+
+}
+
+void PointCloud::bilateral(const Mat &img, Mat &new_img) {
+//    std::string window_name = "Bilateral";
+//    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+    bilateralFilter(img, new_img, 15, 80, 80);
+//    imshow( window_name, new_img );
+//    waitKey(0);
+}
+
+void PointCloud::cannyThreshold(const Mat &img, Mat &new_img)
+{
+    Mat img_gray, detected_edges;
+    int edgeThresh = 1;
+    int lowThreshold = 50;
+    int const max_lowThreshold = 100;
+    int ratio = 3;
+    int kernel_size = 3;
+    std::string window_name = "Edge Map";
+
+    new_img.create( img.size(), img.type() );
+
+    /// Convert the image to grayscale
+    cvtColor( img, img_gray, CV_BGR2GRAY );
+
+    /// Reduce noise with a kernel 3x3
+    blur(img_gray, detected_edges, Size(3,3) );
+
+    /// Canny detector
+    Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
+
+    /// Using Canny's output as a mask, we display our result
+    new_img = Scalar::all(0);
+
+    img.copyTo( new_img, detected_edges);
+    imshow( window_name, new_img );
+
+//    waitKey(0);
+}
+
 // img must br gray
 void PointCloud::thresholding(const Mat &img, Mat &new_img) {
 //  variable that representing the value that is to be given if pixel value is more than the threshold value.
     double max_value = 255.0;
-    char* window_name = "THRESH_BINARY";
+    std::string window_name = "THRESH_BINARY";
     namedWindow( window_name, CV_WINDOW_AUTOSIZE );
     adaptiveThreshold(img, new_img, max_value, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 11, 12);
     imshow( window_name, new_img );
+
+//    char* window_name = "OTSU";
+//    adaptiveThreshold(img,new_img,255,CV_ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY,11,2);
+
+//    double thres = threshold(img, new_img, 0.0, 255.0, THRESH_OTSU);
+//    cout << "otsu value is = " << thres << endl;
+//    threshold(img, new_img, thres, 255.0, THRESH_OTSU);
+//    imshow( window_name, new_img );
+
+//    waitKey(0);
+
+
 }
 
-void PointCloud::getEdges(const Mat &img, VecArray &edges) {
+void PointCloud::getPixels(const Mat &img, VecArray &edges, const int &value) {
     CameraConstants camera;
     uchar val;
+
     for (int i=0; i<camera.image_height; i++) {
         for (int j=0; j<camera.image_width; j++) {
             val = img.at<uchar>(i,j);
-            if ((int)val == 0) {
+            if ((int)val == value) {
+//            if ((int)val == 255) {
                 edges.emplace_back(m_points.at(i*camera.image_width + j).first);
             }
         }
     }
 }
 
-pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, float &mean_distance, float &error, int &iterations) {
+pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, vector<float> &dist, float &mean_distance, float &error, int &iterations) {
     vector<pair<Eigen::Matrix3f, Eigen::Vector3f>> all_R_t;
     VecArray nearestPoints;
-    vector<float> dist;
 
     int counter{0};
     while(counter++ < iterations) {
@@ -704,10 +786,161 @@ float PointCloud::max(const vector<float> &values) {
     return max_value;
 }
 
+void PointCloud::computeNormals(const Mat &img, const Mat &depth_img, Mat &normals) {
+//    std::string window_name = "original img";
+//    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name, img);
+
+    // 1 : smoothing using bilateral filter
+    Mat filtered_img;
+    bilateral(img, filtered_img);
+
+//    std::string window_name2 = "bilateral img";
+//    namedWindow( window_name2, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name2, filtered_img);
+
+    // 2 : depth gradient computation
+    int scale = 1;
+    int delta = 0;
+    int ddepth = CV_16SC1;
+    Mat img_gray;
+
+    /// Convert it to gray
+    cvtColor(filtered_img, img_gray, CV_BGR2GRAY);
+
+    /// Generate grad_x and grad_y
+    Mat der_z_x, der_z_y, sobel_img; // der_z_x = derivative of z to x
+
+    /// Gradient X
+    Sobel(img_gray, der_z_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
+
+    /// Gradient Y
+    Sobel(img_gray, der_z_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT);
+    addWeighted( der_z_x, 0.5, der_z_y, 0.5, 0, sobel_img );
+
+//    std::string window_name3 = "Sobel img";
+//    namedWindow( window_name3, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name3, sobel_img);
+//
+//    std::string window_name4 = "der_z_x";
+//    namedWindow( window_name4, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name4, der_z_x);
+//
+//    std::string window_name5 = "der_z_y";
+//    namedWindow( window_name5, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name5, der_z_y);
+
+    CameraConstants camera;
+
+    // 3 : normal estimation from depth gradients
+    // parameterize a 3D point (X,Y,Z) as a function of a pixel (x,y)
+    Mat xgrid, ygrid;
+    xgrid.create(camera.image_height,camera.image_width, CV_16SC1);
+    ygrid.create(camera.image_height,camera.image_width, CV_16SC1);
+
+    for (int i=0; i<camera.image_height; i++) {
+        for (int j=0; j<camera.image_width; j++) {
+            xgrid.at<short>(i,j) = static_cast<short>(j + 1 + (camera.topLeft[0] - 1) - camera.center[0]);
+            ygrid.at<short>(i,j) = static_cast<short>(i + 1 + (camera.topLeft[1] - 1) - camera.center[1]);
+        }
+    }
+
+    Mat der_x_x, der_x_y, der_y_x, der_y_y, x, y, z;
+    der_x_x.create(camera.image_height,camera.image_width, CV_16SC1);
+    der_x_y.create(camera.image_height,camera.image_width, CV_16SC1);
+    der_y_x.create(camera.image_height,camera.image_width, CV_16SC1);
+    der_y_y.create(camera.image_height,camera.image_width, CV_16SC1);
+    x.create(camera.image_height,camera.image_width, CV_16SC1);
+    y.create(camera.image_height,camera.image_width, CV_16SC1);
+    z.create(camera.image_height,camera.image_width, CV_16SC1);
+//    res.create(camera.image_height,camera.image_width, CV_16SC3);
+
+      ///    if x == i
+    short c = short(camera.constant)/short(camera.mm_per_m);
+    for (int i=0; i<camera.image_height; i++) {
+        for (int j=0; j<camera.image_width; j++) {
+            der_x_x.at<short>(i,j) = xgrid.at<short>(i, j)*der_z_x.at<short>(i,j)/c;
+            der_x_y.at<short>(i,j) = (depth_img.at<short>(i,j) + xgrid.at<short>(i,j)*der_z_y.at<short>(i,j))/c;
+
+            der_y_x.at<short>(i,j) = (depth_img.at<short>(i,j) + ygrid.at<short>(i,j)*der_z_x.at<short>(i,j))/c;
+            der_y_y.at<short>(i,j) = (ygrid.at<short>(i,j)*der_z_y.at<short>(i,j))/c;
+
+            // compute the cross product between tangent vectors
+            // u_x = vec(der_x_x, der_y_x, der_z_x)
+            // u_y = vec(der_x_y, der_y_y, der_z_y)
+            x.at<short>(i,j) = der_y_x.at<short>(i,j) * der_z_y.at<short>(i,j) - der_z_x.at<short>(i,j) * der_y_y.at<short>(i,j);
+            y.at<short>(i,j) = der_z_x.at<short>(i,j) * der_x_y.at<short>(i,j) - der_x_x.at<short>(i,j) * der_z_y.at<short>(i,j);
+            z.at<short>(i,j) = der_x_x.at<short>(i,j) * der_y_y.at<short>(i,j) - der_y_x.at<short>(i,j) * der_x_y.at<short>(i,j);
+
+            // cross product
+            //    A = a1 * i + a2 * j + a3 * k
+            //    B = b1 * i + b2 * j + b3 * k.
+            //    (a2*b3 - a3*b2) * i
+            //    (a3*b1 - a1*b3) * j
+            //    (a1*b2 - a2*b1) * k
+
+            normals.at<Vec3s>(i,j).val[0] = z.at<short>(i,j);
+            normals.at<Vec3s>(i,j).val[1] = y.at<short>(i,j);
+            normals.at<Vec3s>(i,j).val[2] = x.at<short >(i,j);
+        }
+    }
+//    std::string window_name6 = "x";
+//    namedWindow( window_name6, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name6, x);
+//
+//    std::string window_name7 = "y";
+//    namedWindow( window_name7, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name7, y);
+//
+//    std::string window_name8 = "z";
+//    namedWindow( window_name8, CV_WINDOW_AUTOSIZE );
+//    imshow(window_name8, z);
 
 
+    std::string window_name9 = "result";
+    namedWindow( window_name9, CV_WINDOW_AUTOSIZE );
+    imshow(window_name9, normals);
+}
 
+void PointCloud::edgeDetection(const Mat &img, const Mat &depth_img) {
+    double t_rgb1=40.0, t_rgb2=100.0, t_hc1=0.6, t_hc2=1.2, t_dd=0.04, t_search=100;
+    Mat img_gray;
 
+    /// convert it to gray
+    cvtColor(img, img_gray, CV_BGR2GRAY);
+    std::string window_name = "grey img";
+    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
+    imshow( window_name, img_gray );
+    /// convert it to gray
 
+    /// canny
+    Mat Ergb, canny_img;
+    int kernel_size = 3;
 
+    canny_img.create( img.size(), img.type() );
 
+    // Convert the image to grayscale
+    cvtColor( img, img_gray, CV_BGR2GRAY );
+
+    // Reduce noise with a kernel 3x3
+    blur(img_gray, Ergb, Size(3,3) );
+
+    // Canny detector
+    Canny( Ergb, Ergb, t_rgb1, t_rgb2, kernel_size );
+
+    // Using Canny's output as a mask, we display our result
+    canny_img = Scalar::all(0);
+
+    img.copyTo( canny_img, Ergb);
+    std::string window_name2 = "canny of rgb";
+    namedWindow( window_name2, CV_WINDOW_AUTOSIZE );
+    imshow( window_name2, canny_img );
+    /// canny
+
+    /// normal estimation
+    CameraConstants camera;
+    Mat normals;
+    normals.create(camera.image_height,camera.image_width, CV_16SC3);
+    computeNormals(img, depth_img, normals);
+    /// normal estimation
+}
