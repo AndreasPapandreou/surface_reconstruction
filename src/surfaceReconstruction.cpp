@@ -15,7 +15,7 @@ void surfaceReconstruction::initialize(int &index) {
     generic::stereo_dir += image_prefix;
     l_frame_index = index;
     r_frame_index = index+1;
-    m_flag = false;
+    lFrame = rFrame = false;
 }
 
 //!---------------------------------------------------------------------------------------------------------------------
@@ -30,14 +30,23 @@ void surfaceReconstruction::createGui() {
     m_obj_col = Colour("454545");
 
     namedWindow("gui", WINDOW_NORMAL);
-    createTrackbar("next frame", "gui", &slider_value, num_images, change_frame, this);
+    moveWindow("gui", 200, 600);
+    createTrackbar("next frame", "gui", &slider_value, num_images, changeFrame, this);
+    setTrackbarMin("next frame", "gui", 1);
+    createTrackbar("frames", "gui", &slider_value2, 30, setNumOfFrames, this);
+    setTrackbarMin("frames", "gui", 2);
+    createTrackbar("threshold", "gui", &slider_value3, 100, setThreshold, this);
+    setTrackbarMin("threshold", "gui", 10);
+    setTrackbarPos("threshold", "gui", 50);
 
-    createButton("Test", test, this, QT_PUSH_BUTTON, true);
-    createButton("Draw left frame", drawLeftFrame, this, QT_PUSH_BUTTON, true);
-    createButton("Draw right frame", drawRightFrame, this, QT_PUSH_BUTTON, true);
-    createButton("Align frames", alignFrames, this, QT_PUSH_BUTTON, true);
-    createButton("Align frames using knn", alignFramesKnn, this, QT_PUSH_BUTTON, true);
-    createButton("Align frames using knn-sobel", alignFramesKnnSobel, this, QT_PUSH_BUTTON, true);
+    createButton("Draw left frame", drawLeftFrame, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Draw right frame", drawRightFrame, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Show lines between two frames", alignTwoFrames, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Align frames using knn", alignFramesKnn, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Align frames using knn-sobel", alignFramesKnnSobel, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Segmentation", segmentation, this, QT_PUSH_BUTTON|QT_NEW_BUTTONBAR, true);
+    createButton("Left frame", setLeftFrame, this, QT_CHECKBOX, true);
+    createButton("Right frame", setRightFrame, this, QT_CHECKBOX, false);
 
     // initialize with the two first frames
     showFrames(1);
@@ -72,16 +81,73 @@ void surfaceReconstruction::showFrames(int index) {
 
     // create a new window and show the new frames
     namedWindow("gui", WINDOW_NORMAL);
-    createTrackbar("next frame", "gui", &slider_value, num_images, change_frame, this);
+    moveWindow("gui", 200, 600);
+    createTrackbar("next frame", "gui", &slider_value, num_images, changeFrame, this);
+    setTrackbarMin("next frame", "gui", 1);
+    createTrackbar("frames", "gui", &slider_value2, 30, setNumOfFrames, this);
+    setTrackbarMin("frames", "gui", 2);
+    createTrackbar("threshold", "gui", &slider_value3, 100, setThreshold, this);
+    setTrackbarMin("threshold", "gui", 10);
+    setTrackbarPos("threshold", "gui", 50);
     imshow("gui", DispImage);
     waitKey(1);
 }
 
-void surfaceReconstruction::change_frame(int x, void* object) {
+void surfaceReconstruction::changeFrame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     if (x >=1 && x < myClass->num_images)
         myClass->showFrames(x);
     //TODO delete myClass from everywhere
+}
+
+void surfaceReconstruction::alignTwoFrames(int x, void* object) {
+    auto *myClass = (surfaceReconstruction *) object;
+
+    myClass->all_points.clear();
+
+    VecArray r_uncolored_points, l_uncolored_points;
+    vector<pair<vec, Vec3b>> l_points, r_points;
+    pair<Eigen::Matrix3f, Eigen::Vector3f> R_t, total_R_t;
+
+    myClass->getPointCLoud(l_points, myClass->l_frame_index);
+    l_uncolored_points = myClass->getFirstData(l_points);
+
+    myClass->r_frame_index = myClass->l_frame_index + 1;
+
+    myClass->getPointCLoud(r_points, myClass->r_frame_index);
+    r_uncolored_points = myClass->getFirstData(r_points);
+
+    VecArray tree_data = l_uncolored_points;
+    myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
+
+    /// kdtree construction
+    VecArray tree_data2 = r_uncolored_points;
+    myClass->pcloud.m_dst_KDTree = new KDTree(tree_data2);
+
+    vector<float> dist; VecArray nearestPoints;
+
+    /// run kNearest
+    myClass->pcloud.kNearest(myClass->getFirstData(l_points), nearestPoints, dist, 1);
+
+    for (auto &nearestPoint : nearestPoints)
+        myClass->l_points.emplace_back(nearestPoint);
+
+    for (auto &r_uncolored_point : r_uncolored_points)
+        myClass->r_points.emplace_back(r_uncolored_point);
+
+    myClass->draw_lines = true;
+    myClass->draw_frame = false;
+    myClass->draw_segmentation = false;
+}
+
+void surfaceReconstruction::setNumOfFrames(int x, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->num_frames = x;
+}
+
+void surfaceReconstruction::setThreshold(int x, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->threshold = x;
 }
 
 void surfaceReconstruction::drawLeftFrame(int x, void* object) {
@@ -91,72 +157,110 @@ void surfaceReconstruction::drawLeftFrame(int x, void* object) {
 
 void surfaceReconstruction::drawRightFrame(int x, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
+    myClass->r_frame_index = myClass->l_frame_index + 1;
     drawFrame(myClass->r_frame_index, object);
 }
 
 void surfaceReconstruction::drawFrame(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->pcloud.clearPoints();
-    myClass->getPointCLoud(myClass->l_points, index);
-    myClass->m_flag = false;
+    myClass->getPointCLoud(myClass->all_points, index);
+
+    myClass->draw_frame = true;
+    myClass->draw_lines = false;
+    myClass->draw_segmentation = false;
 }
 
-void surfaceReconstruction::alignFrames(int index, void* object) {
-    auto * myClass = (surfaceReconstruction*) object;
-    myClass->all_points.clear();
-
-    myClass->pcloud.clearPoints();
-    myClass->getPointCLoud(myClass->l_points, myClass->l_frame_index);
-
-//    myClass->r_frame_index += 10;
-
-    myClass->pcloud.clearPoints();
-    myClass->getPointCLoud(myClass->r_points, myClass->r_frame_index);
-
-    for (int i=0; i<myClass->l_points.size(); i++) {
-        myClass->all_points.emplace_back(myClass->l_points.at(i));
-    }
-    for (int i=0; i<myClass->r_points.size(); i++) {
-        myClass->all_points.emplace_back(myClass->r_points.at(i));
-    }
-    myClass->m_flag = true;
-}
-
-// without considering the colors
 void surfaceReconstruction::alignFramesKnn(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->all_points.clear();
 
-    vector< pair <vec,Vec3b>> l_points, r_points;
-    VecArray r_uncolored_points;
+    VecArray r_uncolored_points, l_uncolored_points;
+    vector<pair<vec,Vec3b>> l_points, r_points;
+    pair<Eigen::Matrix3f, Eigen::Vector3f> R_t, total_R_t;
 
     myClass->getPointCLoud(l_points, myClass->l_frame_index);
+    l_uncolored_points = myClass->getFirstData(l_points);
 
-//    r_points.clear();
-    myClass->getPointCLoud(r_points, myClass->r_frame_index);
-    r_uncolored_points = myClass->getFirstData(r_points);
+    myClass->r_frame_index = myClass->l_frame_index+1;
 
-    VecArray tree_data = myClass->getFirstData(l_points);
-    myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
+    int frames = myClass->num_frames-1;
+    int counter{0};
+    while(counter < frames) {
+        r_points.clear();
 
-    float error;
-    int iterations{5};
-    vector<float> dist;
-    float mean_distance;
+        myClass->getPointCLoud(r_points, myClass->r_frame_index);
+        r_uncolored_points = myClass->getFirstData(r_points);
 
-    cout << "icp started..." << endl;
-    myClass->pcloud.icp(r_uncolored_points, dist, mean_distance, error, iterations);
+        if(counter > 0)
+            myClass->pcloud.transformPoints(total_R_t, r_uncolored_points);
 
-    myClass->all_points = l_points;
-    for (int j=0; j<r_uncolored_points.size(); j++) {
-        myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+        VecArray tree_data = l_uncolored_points;
+        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
+
+        float error, mean_distance;
+        vector<float> dist;
+        int iterations{8};
+
+        /// run icp
+        R_t = myClass->pcloud.icp(r_uncolored_points, dist, mean_distance, error, iterations);
+
+        // TODO create total_R_t *= R_t
+        if(counter > 0) {
+            total_R_t.first *= R_t.first;
+            total_R_t.second += R_t.second;
+        }
+        else
+            total_R_t = R_t;
+
+        myClass->pcloud.transformPoints(total_R_t, r_uncolored_points);
+
+        /// kdtree construction
+        VecArray tree_data2 = r_uncolored_points;
+        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data2);
+
+        VecArray nearestPoints; dist.clear();
+
+        /// run kNearest
+        myClass->pcloud.kNearest(myClass->getFirstData(l_points), nearestPoints, dist, 1);
+
+        /// get the mean distance
+        mean_distance = myClass->pcloud.vectorSum(dist)/(float)dist.size();
+        float threshold = 2*mean_distance;
+
+        /// remove nearest points with distance less than 2*threshold
+        for (int i=0; i<l_points.size(); i++) {
+            if (dist[i] > threshold)
+                myClass->all_points.emplace_back(l_points[i]);
+        }
+
+        if (counter == frames-1) {
+            for (int j=0; j<r_uncolored_points.size(); j++) {
+                myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+            }
+        }
+        else {
+            myClass->r_frame_index++;
+            l_points.clear();
+            for (int j=0; j<r_uncolored_points.size(); j++)
+                l_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
+        }
+
+        l_uncolored_points = r_uncolored_points;
+        counter++;
     }
-    myClass->m_flag = true;
+
+    cout << "all points are " <<  myClass->all_points.size() << endl;
+    myClass->draw_frame = true;
+    myClass->draw_lines = false;
+    myClass->draw_segmentation = false;
 }
 
 void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
     auto * myClass = (surfaceReconstruction*) object;
     myClass->all_points.clear();
+
+    myClass->r_frame_index = myClass->l_frame_index+1;
 
     VecArray l_edges, r_edges, r_uncolored_points;
     vector<pair<vec,Vec3b>> l_points, r_points;
@@ -164,20 +268,14 @@ void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
     Mat sobel_img, thresholded_img, bilateral_img;
 
     myClass->getPointCLoud(l_points, myClass->l_frame_index);
-//    for (auto &l_point : l_points) {
-//        myClass->all_points.emplace_back(l_point);
-//    }
-
     myClass->pcloud.sobel(myClass->image_mat, sobel_img);
     myClass->pcloud.thresholding(sobel_img, thresholded_img);
-    cout << thresholded_img.size << endl;
     myClass->pcloud.getEdges(thresholded_img, l_edges, 0);
 
-    int frames{1};
+    int frames = myClass->num_frames-1;
     int counter{0};
     while(counter < frames) {
-        r_points.clear();
-        r_edges.clear();
+        r_points.clear(); r_edges.clear();
 
         myClass->getPointCLoud(r_points, myClass->r_frame_index);
         r_uncolored_points = myClass->getFirstData(r_points);
@@ -192,12 +290,11 @@ void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
         VecArray tree_data = l_edges;
         myClass->pcloud.m_dst_KDTree = new KDTree(tree_data);
 
-        float error;
-        int iterations{8};
+        float error, mean_distance;
         vector<float> dist;
-        float mean_distance;
+        int iterations{8};
 
-        cout << "icp started..." << endl;
+        /// run icp
         R_t = myClass->pcloud.icp(r_edges, dist, mean_distance, error, iterations);
 
         // TODO create total_R_t *= R_t
@@ -210,24 +307,26 @@ void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
 
         myClass->pcloud.transformPoints(total_R_t, r_uncolored_points);
 
-        /// test
-//        cout << "in test" << endl;
-        // remove nearest points with distance less than ε
-//        VecArray tree_data2 = r_uncolored_points;
-//        cout << "kdtree construction" << endl;
-//        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data2);
-//
-//        VecArray nearestPoints;
-//        dist.clear();
+        /// kdtree construction
+        VecArray tree_data2 = r_uncolored_points;
+        myClass->pcloud.m_dst_KDTree = new KDTree(tree_data2);
 
-//        cout << "kNearest" << endl;
-//        myClass->pcloud.kNearest(myClass->getFirstData(l_points), nearestPoints, dist, 1);
-//        float threshold = 0.15f;
+        VecArray nearestPoints; dist.clear();
 
-//        for (int i=0; i<nearestPoints.size(); i++) {
+        /// run kNearest
+//        const float t = vvr::getSeconds();
+        myClass->pcloud.kNearest(myClass->getFirstData(l_points), nearestPoints, dist, 1);
+//        const float kNearest = vvr::getSeconds() - t;
+//        echo(kNearest);
+
+        /// get the mean distance
+        mean_distance = myClass->pcloud.vectorSum(dist)/(float)dist.size();
+        cout << "mean_distance = " << mean_distance << endl;
+        float threshold = 2*mean_distance;
+
+        /// remove nearest points with distance less than 2*threshold
         for (int i=0; i<l_points.size(); i++) {
-//            cout << dist[i] << endl;
-//            if (dist[i] > threshold)
+            if (dist[i] > threshold)
                 myClass->all_points.emplace_back(l_points[i]);
         }
 
@@ -237,185 +336,381 @@ void surfaceReconstruction::alignFramesKnnSobel(int index, void* object) {
             }
         }
         else {
+            myClass->r_frame_index++;
             l_points.clear();
             for (int j=0; j<r_uncolored_points.size(); j++)
                 l_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
         }
 
-
-        /// test
-
-//        for (int j=0; j<r_uncolored_points.size(); j++)
-//            myClass->all_points.emplace_back(r_uncolored_points.at(j), r_points.at(j).second);
-
         l_edges = r_edges;
-        myClass->r_frame_index++;
         counter++;
     }
-    myClass->m_flag = true;
+
+    cout << "all points are " <<  myClass->all_points.size() << endl;
+    myClass->draw_frame = true;
+    myClass->draw_lines = false;
+    myClass->draw_segmentation = false;
 }
 
-void surfaceReconstruction::test(int index, void* object) {
+void surfaceReconstruction::segmentation(int index, void* object) {
     auto *myClass = (surfaceReconstruction *) object;
 
+    /// choose left or right frame for segmentation
+    int frame_index;
+    if (myClass->lFrame == myClass->rFrame) {
+        cerr << "You must choose only one frame!" << endl;
+        return;
+    }
+    else if (myClass->lFrame)
+        frame_index = myClass->l_frame_index;
+    else {
+        myClass->r_frame_index = myClass->l_frame_index + 1;
+        frame_index = myClass->r_frame_index;
+    }
+
+    /// clear variables
     myClass->all_points.clear();
-    myClass->m_vertices.clear();
     myClass->segments.clear();
     myClass->m_curvature.clear();
     myClass->m_normals.clear();
+    myClass->planes.clear();
     myClass->pointFeatures.clear();
-    myClass->segments.clear();
-    myClass->test_segments.clear();
-    myClass->mesh = new Mesh;
+    myClass->final_segments.clear();
 
-    vector<pair<vec, Vec3b>> l_points;
-    myClass->getPointCLoud(l_points, myClass->l_frame_index);
-    for (auto &l_point : l_points) {
-        myClass->all_points.emplace_back(l_point);
+    /// get point cloud
+    vector<pair<vec, Vec3b>> points;
+    myClass->getPointCLoud(points, frame_index);
+    for (auto &point : points) {
+        myClass->all_points.emplace_back(point);
     }
 
-    cout << "frame index = " << myClass->l_frame_index << endl;
-    cout << "l points are " << l_points.size() << endl;
+    /// extract only the points without their colors
+    VecArray vertices = myClass->getFirstData(points);
 
-    VecArray vertices = myClass->getFirstData(l_points);
-    myClass->m_vertices = vertices;
-
-    cout << "mesh tri are " << myClass->mesh->getTriangles().size() << endl;
-    cout << "mesh vertices are " << myClass->mesh->getVertices().size() << endl;
-
+    /// mesh triangulation
     vector<int> *tri_indices = myClass->pcloud.triangulateMesh(vertices, myClass->mesh, 1.5f);
-//    myClass->mesh->update();
 
-    cout << "triangles are " << myClass->mesh->getTriangles().size() << endl;
-
+    /// compute normals
     myClass->pcloud.getNormals(myClass->mesh, tri_indices, myClass->m_normals);
 
+    /// compute curvature
     myClass->pcloud.getCurvature(myClass->mesh, tri_indices, myClass->m_curvature);
 
+    /// add original coordinates with their normals
     for (int i = 0; i < myClass->all_points.size(); i++) {
         myClass->m_normals[i] += myClass->all_points[i].first;
     }
 
-    vector<int> *tri_indices_tmp = tri_indices;
-    int rings{1};
-    cout << "finding ringNeighbours with " << rings << " ring(s) ..." << endl;
+    /// find ringNeighbours
+    vector<int> *tri_indices_tmp = tri_indices; int rings{1};
     vector<int> *ringNeighbours = myClass->pcloud.getNRingNeighborhood(myClass->mesh, tri_indices_tmp, rings);
 
-    int size = myClass->mesh->getVertices().size();
-    float luminance;
-    for (int i = 0; i < size; i++) {
-        luminance = myClass->pcloud.getLuminance(l_points[i].second);
+    /// store the above results for all points to struct
+    for (int i = 0; i<myClass->mesh->getVertices().size(); i++) {
         myClass->pointFeatures.emplace_back(
-                PointFeatures(i, myClass->m_vertices[i], myClass->m_normals[i], myClass->m_curvature[i],
-                              luminance, ringNeighbours[i]));
+        PointFeatures(i, vertices[i], myClass->m_normals[i], myClass->m_curvature[i], ringNeighbours[i]));
     }
 
-    cout << "segmentation ..." << endl;
-    vector<int> region;
     vector<int> hash;
-
-    for (int i = 0; i < myClass->pointFeatures.size(); i++) {
+    /// create hash table in order to check if a point has already been processed
+    for (int i = 0; i < myClass->pointFeatures.size(); i++)
         hash.emplace_back(0);
-    }
 
-    /// store to myClass->segments the indices of pointFeatures
+    /// segmentation
+    vector<int> region;
+    /// store the indices of each segment in separate vector, these indices refer to the structure pointFeatures
     for (int i = 0; i < myClass->pointFeatures.size(); i++) {
+        if ( (!myClass->pointFeatures[i].neighborVertices.empty()) &&
+             !(myClass->pcloud.zeroPoint(myClass->pointFeatures[i].coordinates)) &&
+             (hash[i] == 0) ) {
 
-        if ((myClass->pointFeatures[i].neighborVertices.size() != 0) &&
-            !(myClass->pcloud.zeroPoint(myClass->pointFeatures[i].coordinates)) && (hash[i] == 0)) {
             region.clear();
             myClass->pcloud.segmentation(myClass->pointFeatures, region, hash, i);
-            if (region.size() > 10) {
+            if (region.size() > 20) {
+//            if (region.size() != 0) {
                 myClass->segments.emplace_back(region);
             }
         }
     }
 
-    cout << "there are " << myClass->segments.size() << " segments" << endl << endl;
-
+    vector<int> pointsLeftOfPlane, pointsRightOfPlane, percentages;
+    int sum_left, sum_right, my_index;
     vec plane_normal, centroid;
-    vector<VecArray> new_segments;
-    VecArray new_segments2;
-    vector<float> residuals, percentages;
-    vector<int> pointsLeftOfPlane, pointsRightOfPlane;
-    int counter1, counter2;
-    vec point;
+    vector<float> residuals;
+    float residual, perc;
 
-    float residual, curv;
-    int my_index;
-
+    /// for each segment, create a 3d-plane using regression between their points
+    /// for each plane, extract the residuals and the number of points that exist in the left or in the right side
     for (int i=0; i<myClass->segments.size(); i++) {
+        /// create plane
         myClass->pcloud.planeFitting(myClass->pointFeatures, myClass->segments[i], plane_normal, centroid);
         myClass->m_plane = Plane(centroid, plane_normal);
         myClass->planes.emplace_back(myClass->m_plane);
 
+        /// get residuals
         residual = myClass->pcloud.getResiduals(myClass->pointFeatures, myClass->segments[i], myClass->m_plane);
         residuals.emplace_back(residual);
 
-        counter1 = counter2 = 0;
-        for (int j=0; j<myClass->segments[i].size(); j++) {
-            my_index = myClass->segments[i][j];
-            curv += myClass->pointFeatures[my_index].curvature;
-
-            /// Returns the signed distance of this plane to the given point.
-            /** If this function returns a negative value, the given point lies in the negative halfspace of this plane.
-                Conversely, if a positive value is returned, then the given point lies in the positive halfspace of this plane.
-                @see Distance(), IsOnPositiveSide(), AreOnSameSide(). */
-            point = myClass->pointFeatures[my_index].coordinates;
-            if (myClass->m_plane.SignedDistance(point) > 0)
-                counter1+=1;
-            else
-                counter2+=1;
-        }
-
-        pointsLeftOfPlane.emplace_back(counter1);
-        pointsRightOfPlane.emplace_back(counter2);
-        if (pointsLeftOfPlane[i] > pointsRightOfPlane[i])
-            percentages.emplace_back(100.0f*(float(pointsLeftOfPlane[i] - pointsRightOfPlane[i])/pointsLeftOfPlane[i]));
-        else
-            percentages.emplace_back(100.0f*(float(pointsRightOfPlane[i] - pointsLeftOfPlane[i])/pointsRightOfPlane[i]));
-
+        /// get the number of points that exist in the left or in the right side of plane
+        sum_left = sum_right = 0; perc = 0.0f;
+        myClass->pcloud.getPlaneMetrics(myClass->pointFeatures, myClass->segments[i], myClass->m_plane, sum_left, sum_right, perc);
+        pointsLeftOfPlane.emplace_back(sum_left);
+        pointsRightOfPlane.emplace_back(sum_right);
+        percentages.emplace_back(perc);
     }
 
-    myClass->normalize(residuals);
+    /// normalize residuals
+    myClass->pcloud.normalize(residuals);
 
+    vector<VecArray> new_segments; VecArray old_segments;
+
+    /// run second stage of segmentation in some clusters using the plane
     for (int i=0; i<myClass->segments.size(); i++) {
-        cout << "residual = " << residuals[i] << endl;
-        cout << "pointsLeftOfPlane = " << pointsLeftOfPlane[i] << endl;
-        cout << "pointsRightOfPlane = " << pointsRightOfPlane[i] << endl;
         cout << "percentage = " << percentages[i] << endl << endl;
 
-        if ((pointsRightOfPlane[i] != 0) && (pointsLeftOfPlane[i] != 0) ) {
-
-            if ((percentages[i] > 30.0f) && (residuals[i]) > 0.4) {
-
+        if ((pointsRightOfPlane[i] != 0) && (pointsLeftOfPlane[i] != 0)) {
+            if ((percentages[i] >= myClass->threshold)) {
                 new_segments.clear();
 
-                cout << "segmentation 2 ..." << endl;
-                myClass->pcloud.segmentation2(myClass->pointFeatures, myClass->segments[i], new_segments, myClass->planes[i],
-                                              myClass->mesh);
-
-                myClass->test_segments.emplace_back(new_segments);
+                myClass->pcloud.segmentation2(myClass->pointFeatures, myClass->segments[i], new_segments, myClass->planes[i], myClass->mesh);
+                myClass->final_segments.emplace_back(new_segments);
             }
             else {
-                new_segments.clear();
-                new_segments2.clear();
+                new_segments.clear(); old_segments.clear();
 
                 for (int j=0; j<myClass->segments[i].size(); j++) {
                     my_index = myClass->segments[i][j];
-                    new_segments2.emplace_back(myClass->pointFeatures[my_index].coordinates);
+                    old_segments.emplace_back(myClass->pointFeatures[my_index].coordinates);
                 }
-                new_segments.emplace_back(new_segments2);
-                myClass->test_segments.emplace_back(new_segments);
+                new_segments.emplace_back(old_segments);
+                myClass->final_segments.emplace_back(new_segments);
             }
         }
     }
 
-    cout << "finito" << endl;
-
-    myClass->m_flag = true;
-//    delete[] tri_indices;
+    myClass->draw_segmentation = true;
+    myClass->draw_lines = false;
+    myClass->draw_frame = false;
+    delete[] tri_indices, ringNeighbours;
 }
+
+void surfaceReconstruction::setLeftFrame(int index, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->lFrame = !myClass->lFrame;
+}
+
+void surfaceReconstruction::setRightFrame(int index, void* object) {
+    auto * myClass = (surfaceReconstruction*) object;
+    myClass->rFrame = !myClass->rFrame;
+}
+
+void surfaceReconstruction::reset()
+{
+    Scene::reset();
+    m_plane_d = 0;
+    m_plane = Plane(vec(0, 1, 1).Normalized(), m_plane_d);
+}
+
+void surfaceReconstruction::resize()
+{
+    static bool first_pass = true;
+    if (first_pass)
+        first_pass = false;
+}
+//!---------------------------------------------------------------------------------------------------------------------
+
+//!---------------------------------------------------------------------------------------------------------------------
+//! getter functions
+//!---------------------------------------------------------------------------------------------------------------------
+void surfaceReconstruction::getDepthImage(int frame_index) {
+    ImageRGBD depth_image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(frame_index) + "_depth.png");
+    depth_image.convertToMat();
+    depth_image.getMat(depth_mat);
+}
+
+void surfaceReconstruction::getImage(int frame_index) {
+    ImageRGB image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(frame_index) + ".png");
+    image.convertToMat();
+    image.getMat(image_mat);
+}
+
+VecArray surfaceReconstruction::getFirstData(vector< pair <vec,Vec3b>> &paired_data) {
+    VecArray data;
+    for (auto &i : paired_data) {
+        data.emplace_back(i.first);
+    }
+    return data;
+}
+
+void surfaceReconstruction::getPointCLoud(vector< pair <vec,Vec3b>> &point_cloud, int &index) {
+    pcloud.clearPoints();
+    getImage(index);
+    getDepthImage(index);
+    pcloud.create(image_mat, depth_mat);
+
+//    Vec3d degree = {180.0, 0.0, 0.0};
+//    Mat rotation = pcloud.rotationMatrix(degree);
+//    pcloud.rotate(rotation);
+    point_cloud = pcloud.m_points;
+}
+
+Mat surfaceReconstruction::getFrame(int index) {
+    ostringstream frame_to_stream; // declaring output string stream
+    frame_to_stream << index; // frame_to_stream a number as a stream into output
+    string frame_to_string = frame_to_stream.str(); // the str() coverts number into string
+    return imread(generic::stereo_dir + "/" + image_prefix + "_" + frame_to_string + ".png");
+}
+
+//!---------------------------------------------------------------------------------------------------------------------
+
+//!---------------------------------------------------------------------------------------------------------------------
+//! draw functions
+//!---------------------------------------------------------------------------------------------------------------------
+void surfaceReconstruction::draw() {
+    if (draw_frame) {
+        for (int i=0; i<all_points.size(); i++)
+            Point3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z,
+                    Colour(all_points[i].second[2], all_points[i].second[1], all_points[i].second[0])).draw();
+    }
+
+    if (draw_segmentation) {
+        vector<vvr::Colour> cols;
+        cols.emplace_back(Colour::yellow); cols.emplace_back(Colour::black); cols.emplace_back(Colour::blue);
+        cols.emplace_back(Colour::darkOrange); cols.emplace_back(Colour::darkRed); cols.emplace_back(Colour::grey);
+        cols.emplace_back(Colour::darkGreen); cols.emplace_back(Colour::magenta); cols.emplace_back(Colour::red);
+        cols.emplace_back(Colour::orange); cols.emplace_back(Colour::green); cols.emplace_back(Colour::yellowGreen);
+        cols.emplace_back(Colour::white);
+
+        int type{0};
+        for (int i=0; i<final_segments.size(); i++) {
+//            if(i==9) {
+
+
+                for (int j=0; j<final_segments[i].size(); j++) {
+                    if(type > cols.size())
+                        type = 0;
+
+                    for (int m=0; m<final_segments[i][j].size(); m++) {
+
+                        Point3D(final_segments[i][j][m].x,
+                                final_segments[i][j][m].y,
+                                final_segments[i][j][m].z, cols[type]).draw();
+                    }
+                    type++;
+                }
+
+//            }
+
+        }
+
+//        vvr::Colour colPlane(0x41, 0x14, 0xB3);
+//        float u = 30, v = 30;
+//        math::vec p0(planes[0].Point(-u, -v, math::vec(0, 0, 0)));
+//        math::vec p1(planes[0].Point(-u, v, math::vec(0, 0, 0)));
+//        math::vec p2(planes[0].Point(u, -v, math::vec(0, 0, 0)));
+//        math::vec p3(planes[0].Point(u, v, math::vec(0, 0, 0)));
+//        math2vvr(math::Triangle(p0, p1, p2), colPlane).draw();
+//        math2vvr(math::Triangle(p2, p1, p3), colPlane).draw();
+
+    }
+
+    if(draw_lines) {
+        for (auto &l_point : l_points)
+            Point3D(l_point.x, l_point.y, l_point.z, Colour::blue).draw();
+
+        /// add an offset of 40 in order to separate the scenes
+        for (auto &r_point : r_points)
+            Point3D(r_point.x, r_point.y, r_point.z+40, Colour::red).draw();
+
+        LineSeg3D line;
+        for (int i=0; i<l_points.size(); i+=30) {
+            if(!pcloud.zeroPoint(l_points[i]) && !pcloud.zeroPoint(r_points[i])) {
+                line.x1 = l_points[i].x;
+                line.y1 = l_points[i].y;
+                line.z1 = l_points[i].z;
+
+                line.x2 = r_points[i].x;
+                line.y2 = r_points[i].y;
+                line.z2 = r_points[i].z+40;
+
+                line.setColour(Colour::yellow);
+                line.draw();
+            }
+        }
+    }
+
+//    mesh->draw(Colour::green, SOLID);
+//    mesh->draw(Colour::black, WIRE);
+//    mesh->draw(Colour::black, NORMALS);
+
+    ///test curvature
+//    double min_v, max_v;
+//    min_v = min(m_curvature); max_v = max(m_curvature);
+//    for (int i=0; i<m_curvature.size(); i++)
+//        m_curvature[i] = static_cast<float>(255 * ((abs(m_curvature[i]) - min_v) / (max_v - min_v) ));
+//
+//    for (int i=0; i<all_points.size(); i++) {
+//        if (m_curvature[i] > 0.1)
+//            Point3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z, Colour::white).draw();
+//    }
+    ///test curvature
+
+    /// draw normals
+//    double min_x{1}, min_y{1}, min_z{1};
+//    double max_x{-1}, max_y{-1}, max_z{-1};
+//    for (int i=1; i<m_normals.size(); i++) {
+//        if(m_normals[i].x < min_x)
+//            min_x = m_normals[i].x;
+//        if(m_normals[i].y < min_y)
+//            min_y = m_normals[i].y;
+//        if(m_normals[i].z < min_z)
+//            min_z = m_normals[i].z;
+//
+//        if(m_normals[i].x > max_x)
+//            max_x = m_normals[i].x;
+//        if(m_normals[i].y > max_y)
+//            max_y = m_normals[i].y;
+//        if(m_normals[i].z > max_z)
+//            max_z = m_normals[i].z;
+//    }
+
+//    LineSeg3D line, line2;
+//    vec n;
+//    double x,y,z;
+//    for (int i=0; i<m_normals.size(); i+=5) {
+//            n = m_normals[i];
+//            line.x1 = all_points[i].first.x;
+//            line.y1 = all_points[i].first.y;
+//            line.z1 = all_points[i].first.z;
+//
+//            line.x2 = n.x;
+//            line.y2 = n.y;
+//            line.z2 = n.z;
+//
+//            x = 255*(abs(n.x))/(max_x);
+//            y = 255*(abs(n.y))/(max_y);
+//            y = 255*(abs(n.z))/(max_z);
+//
+//            line.setColour(Colour::yellow);
+//            line.setColour(Colour(x,y,z));
+//            line.draw();
+//    }
+    /// draw normals
+
+    //! Draw plane
+//    vvr::Colour colPlane(0x41, 0x14, 0xB3);
+//    float u = 30, v = 30;
+//    math::vec p0(planes[used].Point(-u, -v, math::vec(0, 0, 0)));
+//    math::vec p1(planes[used].Point(-u, v, math::vec(0, 0, 0)));
+//    math::vec p2(planes[used].Point(u, -v, math::vec(0, 0, 0)));
+//    math::vec p3(planes[used].Point(u, v, math::vec(0, 0, 0)));
+//    math2vvr(math::Triangle(p0, p1, p2), colPlane).draw();
+//    math2vvr(math::Triangle(p2, p1, p3), colPlane).draw();
+
+}
+
+/// not used functions
+/// not used functions
 
 //void surfaceReconstruction::alignFramesKnnSobelNormals(int index, void* object) {
 //    auto * myClass = (surfaceReconstruction*) object;
@@ -573,45 +868,11 @@ void surfaceReconstruction::test(int index, void* object) {
 //
 //    myClass->m_flag = true;
 //}
-
-void surfaceReconstruction::reset()
-{
-    Scene::reset();
-    m_plane_d = 0;
-    m_plane = Plane(vec(0, 1, 1).Normalized(), m_plane_d);
+/*
+float surfaceReconstruction::vectorSum(const vector<float> &v) {
+    float initial_sum{0.0f};
+    return accumulate(v.begin(), v.end(), initial_sum);
 }
-
-void surfaceReconstruction::resize()
-{
-    static bool first_pass = true;
-    if (first_pass)
-        first_pass = false;
-}
-//!---------------------------------------------------------------------------------------------------------------------
-
-//!---------------------------------------------------------------------------------------------------------------------
-//! getter functions
-//!---------------------------------------------------------------------------------------------------------------------
-void surfaceReconstruction::getDepthImage(int frame_index) {
-    ImageRGBD depth_image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(frame_index) + "_depth.png");
-    depth_image.convertToMat();
-    depth_image.getMat(depth_mat);
-}
-
-void surfaceReconstruction::getImage(int frame_index) {
-    ImageRGB image(generic::stereo_dir + "/" + image_prefix + "_" + generic::convertToStr(frame_index) + ".png");
-    image.convertToMat();
-    image.getMat(image_mat);
-}
-
-VecArray surfaceReconstruction::getFirstData(vector< pair <vec,Vec3b>> &paired_data) {
-    VecArray data;
-    for (auto &i : paired_data) {
-        data.emplace_back(i.first);
-    }
-    return data;
-}
-
 VecArray surfaceReconstruction::getData(VecArray points, int num) {
     VecArray result;
     for (int i=0; i<num; i++) {
@@ -619,283 +880,4 @@ VecArray surfaceReconstruction::getData(VecArray points, int num) {
     }
     return result;
 }
-
-void surfaceReconstruction::getPointCLoud(vector< pair <vec,Vec3b>> &point_cloud, int &index) {
-    pcloud.clearPoints();
-    getImage(index);
-    getDepthImage(index);
-    pcloud.create(image_mat, depth_mat);
-
-//    Vec3d degree = {180.0, 0.0, 0.0};
-//    Mat rotation = pcloud.rotationMatrix(degree);
-//    pcloud.rotate(rotation);
-    point_cloud = pcloud.m_points;
-}
-
-Mat surfaceReconstruction::getFrame(int index) {
-    ostringstream frame_to_stream; // declaring output string stream
-    frame_to_stream << index; // frame_to_stream a number as a stream into output
-    string frame_to_string = frame_to_stream.str(); // the str() coverts number into string
-    return imread(generic::stereo_dir + "/" + image_prefix + "_" + frame_to_string + ".png");
-}
-
-float surfaceReconstruction::vectorSum(const vector<float> &v) {
-    float initial_sum{0.0f};
-    return accumulate(v.begin(), v.end(), initial_sum);
-}
-
-template <typename T>
-T surfaceReconstruction::min(const vector<T> &values) {
-    T min_value{values.at(0)};
-    for(int i=1; i<values.size(); i++) {
-        if (values.at(i) < min_value)
-            min_value = values.at(i);
-    }
-    return min_value;
-}
-
-template <typename T>
-T surfaceReconstruction::max(const vector<T> &values) {
-    T max_value{values.at(0)};
-    for(int i=1; i<values.size(); i++) {
-        if (values.at(i) > max_value)
-            max_value = values.at(i);
-    }
-    return max_value;
-}
-
-//!---------------------------------------------------------------------------------------------------------------------
-
-//!---------------------------------------------------------------------------------------------------------------------
-//! draw functions
-//!---------------------------------------------------------------------------------------------------------------------
-void surfaceReconstruction::draw() {
-    if (m_flag) {
-//        mesh->draw(Colour::blue, SOLID);
-        drawAdjacentPoints();
-    }
-    else {
-        for (auto &l_point : l_points) {
-//            Point3D(l_point.first.x, l_point.first.y, l_point.first.z,
-//                    Colour(l_point.second[2], l_point.second[1], l_point.second[0])).draw();
-        }
-    }
-}
-
-void surfaceReconstruction::drawAdjacentPoints() {
-//    cout << "all_points size = " << all_points.size() << endl;
-//    mesh->draw(Colour::green, SOLID);
-//    mesh->draw(Colour::black, WIRE);
-//    mesh->draw(Colour::black, NORMALS);
-
-    for (int i=0; i<all_points.size(); i++) {
-//        Point3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z,
-//                    Colour(all_points[i].second[2], all_points[i].second[1], all_points[i].second[0])).draw();
-    }
-
-
-//    Point3D(testPoint.x, testPoint.y, testPoint.z, Colour::yellow).draw();
-
-    vector<vvr::Colour> cols;
-    cols.emplace_back(Colour::yellow);
-    cols.emplace_back(Colour::black);
-    cols.emplace_back(Colour::blue);
-    cols.emplace_back(Colour::darkOrange);
-    cols.emplace_back(Colour::darkRed);
-    cols.emplace_back(Colour::grey);
-    cols.emplace_back(Colour::darkGreen);
-    cols.emplace_back(Colour::magenta);
-    cols.emplace_back(Colour::red);
-    cols.emplace_back(Colour::orange);
-    cols.emplace_back(Colour::green);
-    cols.emplace_back(Colour::yellowGreen);
-    cols.emplace_back(Colour::white);
-
-
-    int type{0}, index;
-//    for (int i=0; i<segments.size(); i++) {
-//        if(type > cols.size())
-//            type = 0;
-//
-//        for (int j=0; j<segments[i].size(); j++) {
-//            index = segments[i][j];
-//            Point3D(pointFeatures[index].coordinates.x,
-//                    pointFeatures[index].coordinates.y,
-//                    pointFeatures[index].coordinates.z, cols[type]).draw();
-//        }
-//        type++;
-//    }
-
-    for (int i=0; i<test_segments.size(); i++) {
-
-        for (int j=0; j<test_segments[i].size(); j++) {
-            if(type > cols.size())
-                type = 0;
-
-            for (int m=0; m<test_segments[i][j].size(); m++) {
-
-                Point3D(test_segments[i][j][m].x,
-                        test_segments[i][j][m].y,
-                        test_segments[i][j][m].z, cols[type]).draw();
-
-            }
-
-            type++;
-        }
-    }
-
-//    int col_r, col_g, col_b = 0;
-//    for (int i=0; i<segments.size(); i++) {
-//        for (int j=0; j<segments[i].size(); j++) {
-//            Point3D(segments[i][j].coordinates.x, segments[i][j].coordinates.y, segments[i][j].coordinates.z, Colour(col_r, col_g, col_b)).draw();
-//        }
-//        if (col_r > 255)
-//            col_r = 0;
-//        else
-//            col_r += 5;
-//        if (col_g > 255)
-//            col_g = 0;
-//        else
-//            col_g += 5;
-//        if (col_b > 255)
-//            col_b = 0;
-//        else
-//            col_b += 5;
-//    }
-
-    ///test curvature
-//     convert curvature to [0-255]
-    double min_v, max_v;
-    min_v = min(m_curvature);
-    max_v = max(m_curvature);
-    for (int i=0; i<m_curvature.size(); i++) {
-//        m_curvature[i] = static_cast<float>(255 * ((abs(m_curvature[i]) - min_v) / (max_v - min_v) ));
-    }
-
-//    cout << "curv size = " << m_curvature.size() << endl;
-//    cout << "curv[0] = " << m_curvature[0] << endl;
-//    cout << "curv[1] = " << m_curvature[1] << endl;
-//    cout << "curv[2] = " << m_curvature[2] << endl;
-
-    for (int i=0; i<all_points.size(); i++) {
-//        Point3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z,
-//                    Colour(static_cast<unsigned char>(m_curvature[i]), 0, 0)).draw();
-//        if (m_curvature[i] > 0.1)
-//            Point3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z, Colour::white).draw();
-    }
-    ///test curvature
-
-    double min_x{1}, min_y{1}, min_z{1};
-    double max_x{-1}, max_y{-1}, max_z{-1};
-    for (int i=1; i<m_normals.size(); i++) {
-        if(m_normals[i].x < min_x)
-            min_x = m_normals[i].x;
-        if(m_normals[i].y < min_y)
-            min_y = m_normals[i].y;
-        if(m_normals[i].z < min_z)
-            min_z = m_normals[i].z;
-
-        if(m_normals[i].x > max_x)
-            max_x = m_normals[i].x;
-        if(m_normals[i].y > max_y)
-            max_y = m_normals[i].y;
-        if(m_normals[i].z > max_z)
-            max_z = m_normals[i].z;
-    }
-
-    LineSeg3D line, line2;
-    vec n;
-    double x,y,z;
-//    for (int i=0; i<m_normals.size(); i++) {
-    for (int i=0; i<m_normals.size(); i+=5) {
-            n = m_normals[i];
-            line.x1 = all_points[i].first.x;
-            line.y1 = all_points[i].first.y;
-            line.z1 = all_points[i].first.z;
-
-            line.x2 = n.x;
-            line.y2 = n.y;
-            line.z2 = n.z;
-
-//            line.x2 = all_points[i].first.x + n.x;
-//            line.y2 = all_points[i].first.y + n.y;
-//            line.z2 = all_points[i].first.z + n.z;
-
-//            line.setColour(Colour::yellow);
-            line.setColour(Colour::yellow);
-//            line.draw();
-
-            x = 255*(abs(n.x))/(max_x);
-            y = 255*(abs(n.y))/(max_y);
-            y = 255*(abs(n.z))/(max_z);
-
-//            x = 255*((abs(n.x) + 1)/2.0f);
-//            y = 255*((abs(n.y) + 1)/2.0f);
-//            z = 127*(n.z);
-//            z = (1-(abs(n.z)))*128 - 1;
-
-            line.setColour(Colour(x,y,z));
-//            line.draw();
-
-//            LineSeg3D(all_points[i].first.x, all_points[i].first.y, all_points[i].first.z,
-//                    all_points[i].first.x+n.x, all_points[i].first.y+n.y, all_points[i].first.z+n.z,
-//                    Colour(x,y,z)).draw();
-
-    }
-
-    //! Draw plane
-
-//    vvr::Colour colPlane(0x41, 0x14, 0xB3);
-//    float u = 30, v = 30;
-//    math::vec p0(planes[used].Point(-u, -v, math::vec(0, 0, 0)));
-//    math::vec p1(planes[used].Point(-u, v, math::vec(0, 0, 0)));
-//    math::vec p2(planes[used].Point(u, -v, math::vec(0, 0, 0)));
-//    math::vec p3(planes[used].Point(u, v, math::vec(0, 0, 0)));
-//    math2vvr(math::Triangle(p0, p1, p2), colPlane).draw();
-//    math2vvr(math::Triangle(p2, p1, p3), colPlane).draw();
-
-}
-
-//!---------------------------------------------------------------------------------------------------------------------
-
-//!---------------------------------------------------------------------------------------------------------------------
-//! other functionalities
-//!---------------------------------------------------------------------------------------------------------------------
-// if diff <= threshold -> remove them
-vector<int> surfaceReconstruction::removePoints(VecArray &l_points, VecArray &r_points, float threshold) {
-    vector<int> indices;
-    float value;
-    for (int i=0; i<l_points.size(); i++) {
-        vec diff_point = l_points.at(i) - r_points.at(i);
-        value = static_cast<float>(abs(pow(diff_point.x, 2) + pow(diff_point.y, 2) + pow(diff_point.z, 2)));
-//            if (value > threshold)
-        indices.emplace_back(i);
-    }
-    return indices;
-}
-
-//vector<int> surfaceReconstruction::removePoints(VecArray4 &l_points, VecArray4 &r_points, float threshold) {
-//    vector<int> indices;
-//    float value;
-//    vec p1, p2;
-//    for (int i=0; i<l_points.size(); i++) {
-//        p1.x = l_points.at(i).x; p1.y = l_points.at(i).y; p1.z = l_points.at(i).z;
-//        p2.x = r_points.at(i).x; p2.y = r_points.at(i).y; p2.z = r_points.at(i).z;
-//        vec diff_point = p1 - p2;
-//        value = static_cast<float>(abs(pow(diff_point.x, 2) + pow(diff_point.y, 2) + pow(diff_point.z, 2)));
-////        if (value > threshold)
-//            indices.emplace_back(i);
-//    }
-//    return indices;
-//}
-
-template <typename T>
-void surfaceReconstruction::normalize(vector<T> &values) {
-    T min_value = min(values);
-    T max_value = max(values);
-    T diff = max_value - min_value;
-    for (T &value : values) {
-        value = (value - min_value)/diff;
-    }
-}
-//!---------------------------------------------------------------------------------------------------------------------
+*/

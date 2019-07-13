@@ -8,31 +8,31 @@
 /**
  * A node of a KD-Tree
  */
-//struct KDNode
-//{
-//    vec split_point;
-//    int axis;
-//    int level;
-//    KDNode *child_left;
-//    KDNode *child_right;
-//    KDNode() : child_left(NULL), child_right(NULL) {}
-//    ~KDNode() { delete child_left; delete child_right; }
-//};
-
-/**
- * A node of a KD-Tree
- */
 struct KDNode
 {
     vec split_point;
     int axis;
     int level;
-    int index; ///test
     KDNode *child_left;
     KDNode *child_right;
     KDNode() : child_left(NULL), child_right(NULL) {}
     ~KDNode() { delete child_left; delete child_right; }
 };
+
+/**
+ * A node of a KD-Tree
+ */
+//struct KDNode
+//{
+//    vec split_point;
+//    int axis;
+//    int level;
+//    int index; ///test
+//    KDNode *child_left;
+//    KDNode *child_right;
+//    KDNode() : child_left(NULL), child_right(NULL) {}
+//    ~KDNode() { delete child_left; delete child_right; }
+//};
 
 /**
  * KD-Tree wrapper. Holds a ptr to tree root.
@@ -47,8 +47,8 @@ public:
     const VecArray &pts;
 
 public:
-//    static int makeNode(KDNode *node, VecArray &pts, const int level);
-    static int makeNode(KDNode *node, VecArray &pts, std::vector<int> indices, const int level);
+    static int makeNode(KDNode *node, VecArray &pts, const int level);
+//    static int makeNode(KDNode *node, VecArray &pts, std::vector<int> indices, const int level);
     static void getNodesOfLevel(KDNode *node, std::vector<KDNode*> &nodes, int level);
     void kNearest(const int k, const vec& test_pt, const KDNode* root, const KDNode **knn, float *best_dist);
     static std::vector<size_t> sort_indexes(const std::vector<float3> &v, const int axis);
