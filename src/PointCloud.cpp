@@ -2,35 +2,25 @@
 #include "dataTypes.h"
 
 bool operator==(const vec &v1, const vec &v2) {
-    return (v1.x == v2.x &&
-            v1.y == v2.y &&
-            v1.z == v2.z);
+    return (v1.x == v2.x && v1.y == v2.y && v1.z == v2.z);
 }
 
 bool operator!=(const vec &v1, const vec &v2) {
-    return (v1.x != v2.x &&
-            v1.y != v2.y &&
-            v1.z != v2.z);
+    return (v1.x != v2.x && v1.y != v2.y && v1.z != v2.z);
 }
 
-/* ------------------------------------------------------------------------------
- * Inputs       : An image in Mat and its depth one version in Mat
- * Description  : It creates the point cloud of each image. and stores all points
- *                and their colours in vector< pair <Point3d,Vec3b>>.
- * Return       : -
- * ------------------------------------------------------------------------------
-*/
+/// \description
+/// This function creates the 3d-point cloud and stores all points and their colours in vector< pair <Point3d,Vec3b>>
+/// \param 2d-image
+/// \param 2d-depth_image
+/// \return void
 void PointCloud::create(const Mat &image, Mat &depth_image)
 {
     CameraConstants camera;
-    Mat filtered_depth;
+    Mat filtered_depth, xgrid, ygrid;
     for ( int i = 1; i < 3; i = i + 2 )
-    {
         medianBlur ( depth_image, filtered_depth, i );
-//        if( display_dst( DELAY_BLUR ) != 0 ) { return 0; }
-    }
 
-    Mat xgrid, ygrid;
     xgrid.create(camera.image_height,camera.image_width, CV_16SC1);
     ygrid.create(camera.image_height,camera.image_width, CV_16SC1);
 
@@ -47,52 +37,29 @@ void PointCloud::create(const Mat &image, Mat &depth_image)
             point.x = xgrid.at<short>(i,j)*(filtered_depth.at<unsigned short>(i,j)/camera.constant/camera.mm_per_m);
             point.y = ygrid.at<short>(i,j)*(filtered_depth.at<unsigned short>(i,j)/camera.constant/camera.mm_per_m);
             point.z = filtered_depth.at<unsigned short>(i,j)/camera.mm_per_m;
-
-            ///test
-            // try to discretize the depth
-//            point.z = int(point.z);
-            ///test
-
-//            if (point.x != 0 && point.y != 0 && point.z != 0) {
-//            if (point.z != 0) {
-                m_points.emplace_back(point, image.at<Vec3b>(i,j));
-//            }
+            m_points.emplace_back(point, image.at<Vec3b>(i,j));
         }
     }
 }
 
+/// \description
+/// This function clears class variable
+/// \return void
 void PointCloud::clearPoints()
 {
     m_points.clear();
 }
 
-// not considering the colors
+/// \description
+/// This function calls the kNearest function of the class KDTree in order to find nearest points
+/// \param src, the source points
+/// \param nearestPoints, the nearest points of src
+/// \param dist, the distance of each point with its nearest
+/// \param kn, the number of neighbors to search
+/// \return void
 void PointCloud::kNearest(const VecArray &src, VecArray &nearestPoints, vector<float> &dist, int kn) {
-//    float distance;
-//    const float t = vvr::getSeconds();
-//
-//    for (auto src_pt : src) {
-//        for (int j=0; j<kn; j++) {
-//            const KDNode **nearests = new const KDNode*[kn];
-//            memset(nearests, NULL, kn * sizeof(KDNode*));
-//
-//            cout << "in" << endl;
-//
-//            m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &distance);
-//
-//            cout << "nearest = " << (*nearests)->split_point << endl;
-//
-    // TODO check if i have to update *(nearests+j) to nearests[j]
-//            nearestPoints.emplace_back((*nearests)->split_point);
-//            dist.emplace_back(distance);
-//        }
-//    }
-//
-//    const float KDTree_knn_time = vvr::getSeconds() - t;
-////    echo(KDTree_knn_time);
-
     float distance;
-    const float t = vvr::getSeconds();
+//    const float t = vvr::getSeconds();
 
     for (auto src_pt : src) {
         const KDNode **nearests = new const KDNode*[kn];
@@ -102,17 +69,21 @@ void PointCloud::kNearest(const VecArray &src, VecArray &nearestPoints, vector<f
 
             m_dst_KDTree->kNearest(j, src_pt, m_dst_KDTree->root(), nearests, &distance);
 
-            // TODO check if i have to update *(nearests+j) to nearests[j]
             nearestPoints.emplace_back((*nearests+j)->split_point);
             dist.emplace_back(distance);
         }
     }
 
-    const float KDTree_knn_time = vvr::getSeconds() - t;
+//    const float KDTree_knn_time = vvr::getSeconds() - t;
 //    echo(KDTree_knn_time);
-
 }
 
+/// \description
+/// This function describes the steps to computing the best-fitting rigid transformation that aligns two sets of
+/// corresponding points
+/// \param src, the source points
+/// \param dst, the destination points
+/// \return pair<Eigen::Matrix3f, Eigen::Vector3f>(R,t), where R is the rotation matrix and t the translation vector
 pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::computeRigidTransform(const VecArray &src, const VecArray &dst) {
     int size = dst.size();
     vec src_center = getCentroid(src);
@@ -133,38 +104,43 @@ pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::computeRigidTransform(const V
         Y(2,i) = dst_centered_point.z/(double)size;
     }
 
-    // compute the covariance matrix
+    /// compute the covariance matrix
     Eigen::Matrix3f S = Y*X.transpose();
 
-    // compute the singular value decomposition
+    /// compute the singular value decomposition
     Eigen::JacobiSVD<Eigen::MatrixXf> svd;
     svd.compute(S, Eigen::ComputeThinU | Eigen::ComputeThinV );
     if (!svd.computeU() || !svd.computeV()) {
         std::cerr << "decomposition error" << endl;
     }
 
-    // extract right singular vectors
+    /// extract right singular vectors
     Eigen::Matrix3f V = svd.matrixV();
 
-    // extract left singular vectors
+    /// extract left singular vectors
     Eigen::Matrix3f U = svd.matrixU();
 
-    // create diagonal matrix
+    /// create diagonal matrix
     Eigen::MatrixXf diag_mat(3, 3);
     diag_mat.setZero();
     diag_mat(0,0) = 1;
     diag_mat(1,1) = 1;
     diag_mat(2,2) = V.determinant()*U.transpose().determinant();
 
-    // compute rotation matrix
+    /// compute rotation matrix
     Eigen::Matrix3f R = V*diag_mat*U.transpose();
 
-    // compute translation vector
+    /// compute translation vector
     Eigen::Vector3f t = dataTypes::convertToEigenVector(src_center) - R*dataTypes::convertToEigenVector(dst_center);
 
     return pair<Eigen::Matrix3f, Eigen::Vector3f>(R, t);
 }
 
+/// \description
+/// This function transforms 3d-points using a rotation matrix and a translation vector
+/// \param (R,t), where R is the rotation matrix and t the translation vector
+/// \param points
+/// \return void
 void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, VecArray &points) {
     int size = static_cast<int>(points.size());
 
@@ -181,14 +157,17 @@ void PointCloud::transformPoints(pair<Eigen::Matrix3f, Eigen::Vector3f> &R_t, Ve
     dataTypes::convertToVector(new_points, points);
 }
 
+/// \description
+/// This function calculates the derivatives from an image using the filter sobel
+/// \param img, the original image
+/// \param new_img, the filtered image
+/// \return void
 void PointCloud::sobel(const Mat &img, Mat &new_img) {
     Mat img_gray;
     std::string window_name = "Sobel";
     int scale = 1;
     int delta = 0;
     int ddepth = CV_8UC1;
-    //TODO test it
-    //    int ddepth = CV_16S;
 
     GaussianBlur( img, img, Size(3,3), 0, 0, BORDER_DEFAULT );
 
@@ -210,24 +189,32 @@ void PointCloud::sobel(const Mat &img, Mat &new_img) {
     Sobel( img_gray, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT );
     convertScaleAbs( grad_y, abs_grad_y );
 
-    /// Total Gradient (approximate)
+    /// Total Gradient
     addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, new_img );
 
 //    imshow( window_name, new_img );
 //    waitKey(0);
 }
 
-// img must br gray
+/// \description
+/// This function applies an adaptive threshold to an image
+/// \param img, the filtered image that must be grey
+/// \param new_img, the image after thresholding
+/// \return void
 void PointCloud::thresholding(const Mat &img, Mat &new_img) {
-//  variable that representing the value that is to be given if pixel value is more than the threshold value.
+    ///  variable that representing the value that is to be given if pixel value is more than the threshold value.
     double max_value = 255.0;
     std::string window_name = "THRESH_BINARY";
-//    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
-//    adaptiveThreshold(img, new_img, max_value, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 11, 12);
+    // namedWindow( window_name, CV_WINDOW_AUTOSIZE );
     adaptiveThreshold(img, new_img, max_value, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 11, 6);
-//    imshow( window_name, new_img );
+    // imshow( window_name, new_img );
 }
 
+/// \description
+/// This function finds the pixels with equal intensity with the value given as input
+/// \param edges
+/// \param value
+/// \return void
 void PointCloud::getEdges(const Mat &img, VecArray &edges, const int &value) {
     CameraConstants camera;
     uchar val;
@@ -242,7 +229,14 @@ void PointCloud::getEdges(const Mat &img, VecArray &edges, const int &value) {
     }
 }
 
-pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, vector<float> &dist, float &mean_distance, float &error, int &iterations) {
+/// \description
+/// This function applies the iterative closest point algorithm for a specific number of frames
+/// \param src_points, the source points
+/// \param dist, the distance points
+/// \param mean_distance, the mean distance between all points and their nearests
+/// \param iterations, the number of iteration that the icp must do
+/// \return pair<Eigen::Matrix3f, Eigen::Vector3f>(R,t), where R is the rotation matrix and t the translation vector
+pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, vector<float> &dist, float &mean_distance, int &iterations) {
     vector<pair<Eigen::Matrix3f, Eigen::Vector3f>> all_R_t;
     VecArray nearestPoints;
 
@@ -260,7 +254,6 @@ pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, vec
 
         mean_distance = vectorSum(dist)/(float)dist.size();
         normalize(dist);
-        error = vectorSum(dist)/(float)dist.size();
 
 //        cout << "iter = " << counter << endl;
 //        cout << "mean_dist = " << mean_distance << endl;
@@ -276,6 +269,18 @@ pair<Eigen::Matrix3f, Eigen::Vector3f> PointCloud::icp(VecArray &src_points, vec
     return R_t;
 }
 
+/// \description
+/// This function firstly triangulates the mesh and creates the generated triangles. It also samples some of them using
+/// their depth for better results. Then, it creates the structure vector<int> *tri_indices in order to keep some
+/// information about the mesh. That structure stores for each vertex of mesh the triangles where it belongs to.
+/// For example : [ 0  => [ 10 20 ]
+///                1 ] => [ 40 50 ]
+/// That means that the vertex of mesh with index 0 belongs to triangles with indeces 10 and 20 and
+/// the vertex with index 1 belongs to triangles with indeces 40 and 50.
+/// \param vertices, all vertices of point cloud
+/// \param mesh
+/// \param threshold, that value is used for the sampling of triangles of mesh
+/// \return vector<int>*
 vector<int>* PointCloud::triangulateMesh(const std::vector<vec>& vertices, Mesh*& mesh, const float threshold) {
     mesh = new Mesh();
     std::vector<vec> &modelVerts = mesh->getVertices();
@@ -284,10 +289,6 @@ vector<int>* PointCloud::triangulateMesh(const std::vector<vec>& vertices, Mesh*
     for (auto &d : vertices) modelVerts.push_back(d);
 
     CameraConstants camera;
-//    float t{1.0f}; //old
-//    float t{1.5f}; //correct for segment 1
-    // sampling triangles using the depth for smoother normals
-//    float t{0.1f};///correct
     int size = (camera.image_width - 1)*(camera.image_height - 1);
 
     for (int i = 0; i < size; i++) {
@@ -332,13 +333,18 @@ vector<int>* PointCloud::triangulateMesh(const std::vector<vec>& vertices, Mesh*
     return tri_indices;
 }
 
+/// \description
+/// This function computes the normal of each point of mesh. The normal of each point is equal with the sum of normals
+/// of triangles that they belong to divided by the number of these triangles.
+/// \param mesh
+/// \param tri_indicesm, this structure is generated in function triangulateMesh()
+/// \param normals, the normal of each point of mesh
+/// \return void
 void PointCloud::getNormals(Mesh*& mesh, vector<int>* tri_indices, VecArray &normals) {
     int size = mesh->getVertices().size();
-    int index;
-
-    // get normals
+    int index, counter{0};
     vec normal;
-    int counter{0};
+
     for (int i=0; i<size; i++) {
         normal.x = normal.y = normal.z = 0.0f;
 
@@ -352,13 +358,18 @@ void PointCloud::getNormals(Mesh*& mesh, vector<int>* tri_indices, VecArray &nor
                 normal += mesh->getTriangles()[index].getNormal();
             }
             normal /= float(tri_indices[i].size());
-//            normal += mesh->getVertices()[i];
             normals.emplace_back(-normal);
         }
     }
-    cout << "points without triangle are " << counter << endl;
 }
 
+/// \description
+/// This function uses the The Gauss-Bonnet Scheme in order to compute the curvature of each point in mesh
+/// (http://www.cs.technion.ac.il/~octavian/PUBLICATIONS/RangeImageCurvatures.pdf  ->  page 16, fig 4)
+/// \param mesh
+/// \param tri_indices, this structure is generated in function triangulateMesh()
+/// \param curvature
+/// \return void
 void PointCloud::getCurvature(Mesh*& mesh, vector<int>* tri_indices, vector<float> &curvature) {
     double adjacent_side1_len, adjacent_side2_len, opposite_side_len, radian, area;
     int size = mesh->getVertices().size();
@@ -366,17 +377,17 @@ void PointCloud::getCurvature(Mesh*& mesh, vector<int>* tri_indices, vector<floa
     vec v1, v2, v3;
     int index;
 
-    // iterate through all vertices
+    /// iterate through all vertices
     for (int i=0; i<size; i++) {
         area = 0.0;
         radian = 0.0;
 
-        // if there are not neighbors (points without depth)
+        /// if there are not neighbors (points without depth)
         if(tri_indices[i].empty()) {
             curvature.emplace_back(0.0f);
         }
         else {
-            // get the neighbors of each vertex
+            /// get the neighbors of each vertex
             for (int j=0; j<tri_indices[i].size(); j++) {
                 index = tri_indices[i][j];
 
@@ -390,7 +401,7 @@ void PointCloud::getCurvature(Mesh*& mesh, vector<int>* tri_indices, vector<floa
                 v2 = tri2.v2();
                 v3 = tri2.v3();
 
-                // compute the length of each side of triangles
+                /// compute the length of each side of triangles
                 if(i == tri2.vi1) {
                     adjacent_side1_len = sqrt(pow(v1.x - v2.x,2) + pow(v1.y - v2.y,2) + pow(v1.z - v2.z,2));
                     adjacent_side2_len = sqrt(pow(v1.x - v3.x,2) + pow(v1.y - v3.y,2) + pow(v1.z - v3.z,2));
@@ -413,7 +424,6 @@ void PointCloud::getCurvature(Mesh*& mesh, vector<int>* tri_indices, vector<floa
 
             if(isnan((2*M_PI-radian)/(area/3)))
                 curvature.emplace_back(0.0f);
-//                curvature.emplace_back(1.0f); ///test
             else
                 curvature.emplace_back((2*M_PI-radian)/(area/3));
         }
@@ -421,6 +431,13 @@ void PointCloud::getCurvature(Mesh*& mesh, vector<int>* tri_indices, vector<floa
     normalize(curvature);
 }
 
+/// \description
+/// This function finds neighbor vertices that exist on a separate segment/cluster of mesh
+/// \param pointFeatures, all the data we need to know per vertex
+/// \param region, the region with points in same segment
+/// \param hash, hash table in order to know when a point has already been segmented
+/// \param start, the index of starting point in mesh
+/// \return void
 void PointCloud::segmentation(const vector<PointFeatures> pointFeatures, vector<int> &region, vector<int> &hash, int start) {
     int index;
     region.emplace_back(start);
@@ -439,6 +456,13 @@ void PointCloud::segmentation(const vector<PointFeatures> pointFeatures, vector<
     }
 }
 
+/// \description
+/// This function creates the best fitting plane given a set of points using svd
+/// \param pointFeatures
+/// \param segment
+/// \param plane_normal
+/// \param centroid
+/// \return void
 void PointCloud::planeFitting(const vector<PointFeatures> pointFeatures, const vector<int> &segment, vec &plane_normal, vec &centroid) {
     int size = segment.size();
     VecArray src;
@@ -474,10 +498,19 @@ void PointCloud::planeFitting(const vector<PointFeatures> pointFeatures, const v
     Eigen::Matrix3f U = svd.matrixU();
 
     plane_normal.x = U(0,2); plane_normal.y = U(1,2); plane_normal.z = U(2,2);
-
-//    cout << "Its singular values are:" << endl << svd.singularValues() << endl;
 }
 
+/// \description
+/// This function applies another stage of segmentation using the structure of a plane. It creates the best fitting
+/// plane given a set of points and then it separates the points that exist on the left and on the right side of it.
+/// Then, it uses the 1-ring neighbors of each vertex in order to distinguish all objects that may exist in each side
+/// of plane.
+/// \param pointFeatures
+/// \param segment
+/// \param new_segments
+/// \param plane
+/// \param mesh
+/// \return void
 void PointCloud::segmentation2(const vector<PointFeatures> &pointFeatures, const vector<int> &segment, vector<VecArray> &new_segments,  math::Plane &plane, Mesh*& mesh) {
     VecArray region;
     vector<int> indices, hash;
@@ -507,7 +540,6 @@ void PointCloud::segmentation2(const vector<PointFeatures> &pointFeatures, const
                     p2 = pointFeatures[index3].coordinates;
 
                     if (hash[index3] == 0) {
-//                        if (!contains(region, p2) && (plane.AreOnSameSide(p1, p2))) {
                         if ((plane.AreOnSameSide(p1, p2))) {
                             indices.emplace_back(index3);
                             region.emplace_back(p2);
@@ -523,6 +555,12 @@ void PointCloud::segmentation2(const vector<PointFeatures> &pointFeatures, const
     }
 }
 
+/// \description
+/// This function computes the residuals of a plane and some 3d-points
+/// \param pointFeatures
+/// \param segment
+/// \param plane
+/// \return float
 float PointCloud::getResiduals(const vector<PointFeatures> pointFeatures, const vector<int> &segment, math::Plane &plane) {
     float residuals{0.0f};
     int index;
@@ -536,7 +574,15 @@ float PointCloud::getResiduals(const vector<PointFeatures> pointFeatures, const 
     return abs(residuals / float(segment.size()));
 }
 
-/// get the number of points that exist in the left or in the right side of plane
+/// \description
+/// This function computes some metrics about the points tha exist under and above the plane.
+/// \param features
+/// \param segment
+/// \param plane
+/// \param leftPoints
+/// \param rightPoints
+/// \param perc
+/// \return void
 void PointCloud::getPlaneMetrics(vector<PointFeatures> &features, const vector<int> &segment, math::Plane &plane, int &leftPoints, int &rightPoints, float &perc) {
     int index; vec point;
 
@@ -557,8 +603,8 @@ void PointCloud::getPlaneMetrics(vector<PointFeatures> &features, const vector<i
 }
 
 /// \description
-/// The structure vector<int>* tri_indices stores the indeces of triangles that each vertex of mesh belongs to, it has the below
-/// form  for only two vertices :
+/// The structure vector<int>* tri_indices stores the indeces of triangles that each vertex of mesh belongs to, it has
+/// the below form  for only two vertices :
 ///   [ 0  => [ 10 20 ]
 ///    1 ] => [ 40 50 ]
 /// That means that the vertex with index 0 belongs to triangles with indeces 10 and 20 and
@@ -567,6 +613,8 @@ void PointCloud::getPlaneMetrics(vector<PointFeatures> &features, const vector<i
 /// for the next-ring it updates the structure vector<int>* tri_indices in order to store for each vertex of mesh the
 /// triangles where the next-ring neighbors belong to and so on. It returns vector<int>* ringNeighbours, which
 /// for each vertex of mesh contains the neighborhoud vertices of mesh.
+/// Also we must pass a copy of tri_indices from the caller because the function will change it in order to find
+/// n-ring neighborhood with n>1
 /// \param mesh
 /// \param tri_indices
 /// \param rings
@@ -576,14 +624,13 @@ vector<int>* PointCloud::getNRingNeighborhood(Mesh*& mesh, vector<int>*& tri_ind
     int index, index2, index3;
 
     //TODO use smart pointers
-//    static vector<int> *ringNeighbours = new vector<int>[size];
     vector<int> *ringNeighbours = new vector<int>[size];
 
-    // iterate through all vertices of mesh
+    /// iterate through all vertices of mesh
     for (int i=0; i<size; i++) {
         if(tri_indices[i].empty()) {}
         else {
-            // store Nth ring neighbors
+            /// store Nth ring neighbors
             for (int j=0; j<tri_indices[i].size(); j++) {
                 index = tri_indices[i][j];
 
@@ -607,24 +654,24 @@ vector<int>* PointCloud::getNRingNeighborhood(Mesh*& mesh, vector<int>*& tri_ind
     rings--;
     vector<int> new_indices, indicesForSearching;
 
-    // update the tri_indices in order to contain the triangles in which the next ring vertices belong to
+    /// update the tri_indices in order to contain the triangles in which the next ring vertices belong to
     if(rings > 0) {
-        // iterate through all vertices of mesh
+        /// iterate through all vertices of mesh
         for (int i=0; i<size; i++) {
             new_indices.clear();
 
             if(tri_indices[i].empty()) {}
             else {
-                // iterate through all triangles each vertex belongs to
+                /// iterate through all triangles each vertex belongs to
                 for (int j=0; j<tri_indices[i].size(); j++) {
                     indicesForSearching.clear();
 
-                    // get the index of triangle
+                    /// get the index of triangle
                     index = tri_indices[i][j];
 
                     const vvr::Triangle tri = mesh->getTriangles()[index];
 
-                    // store the vertices of triangle with the above index
+                    /// store the vertices of triangle with the above index
                     if(i != tri.vi1)
                         indicesForSearching.emplace_back(tri.vi1);
                     if(i != tri.vi2)
@@ -632,15 +679,15 @@ vector<int>* PointCloud::getNRingNeighborhood(Mesh*& mesh, vector<int>*& tri_ind
                     if(i != tri.vi3)
                         indicesForSearching.emplace_back(tri.vi3);
 
-                    // search in which triangles do the above vertices belong to
+                    /// search in which triangles do the above vertices belong to
                     for (int n=0; n<indicesForSearching.size(); n++) {
                         index2 = indicesForSearching[n];
 
-                        // iterate through each vertex and store the triangles where each belongs
+                        /// iterate through each vertex and store the triangles where each belongs
                         for (int m=0; m<tri_indices[index2].size(); m++) {
                             index3 = tri_indices[index2][m];
 
-                            // store the indices of each triangle
+                            /// store the indices of each triangle
                             if (!contains(new_indices, index3))
                                 new_indices.emplace_back(index3);
                         }
@@ -655,6 +702,10 @@ vector<int>* PointCloud::getNRingNeighborhood(Mesh*& mesh, vector<int>*& tri_ind
     return ringNeighbours;
 }
 
+/// \description
+/// This function generate any rotation matrix for 3d-points given the appropriate degree
+/// \param degree
+/// \return Mat, the rotation matrix
 Mat PointCloud::rotationMatrix(const Vec3d &degree)
 {
     Vec3d radian;
@@ -662,29 +713,33 @@ Mat PointCloud::rotationMatrix(const Vec3d &degree)
     radian[1] = degree[1]*M_PI/180.; // y_axis
     radian[2] = degree[2]*M_PI/180.; // z_axis
 
-    // calculate rotation about x axis
+    /// calculate rotation about x axis
     Mat rotation_x = (Mat_<float>(3,3) <<
                                        1, 0, 0,
             0, cos(radian[0]), -sin(radian[0]),
             0, sin(radian[0]), cos(radian[0]));
 
-    // calculate rotation about y axis
+    /// calculate rotation about y axis
     Mat rotation_y = (Mat_<float>(3,3) <<
                                        cos(radian[1]), 0, sin(radian[1]),
             0, 1, 0,
             -sin(radian[1]), 0, cos(radian[1]));
 
-    // calculate rotation about z axis
+    /// calculate rotation about z axis
     Mat rotation_z = (Mat_<float>(3,3) <<
                                        cos(radian[2]), -sin(radian[2]), 0,
             sin(radian[2]), cos(radian[2]), 0,
             0, 0, 1);
 
-    // get the final rotation matrix
+    /// get the final rotation matrix
     Mat rotation = rotation_z * rotation_y * rotation_x;
     return rotation;
 }
 
+/// \description
+/// This function rotates 3d-points of class
+/// \param rotation_mat
+/// \return void
 void PointCloud::rotate(const Mat &rotation_mat) {
     for (auto &point : m_points) {
         Mat current_point = (Mat_<float>(3,1) << point.first.x, point.first.y, point.first.z);
@@ -695,28 +750,10 @@ void PointCloud::rotate(const Mat &rotation_mat) {
     }
 }
 
-void PointCloud::getBoundingBox(VecArray &vertices, Box3D &box)
-{
-    double max_x = vertices[0].x, max_y = vertices[0].y, max_z = vertices[0].z;
-    double min_x = vertices[0].x, min_y = vertices[0].y, min_z = vertices[0].z;
-    int size = vertices.size();
-    for (int i = 1; i < size; i++) {
-        if (vertices[i].x > max_x)	max_x = vertices[i].x;
-        if (vertices[i].y > max_y)	max_y = vertices[i].y;
-        if (vertices[i].z > max_z)  max_z = vertices[i].z;
-        if (vertices[i].x < min_x)  min_x = vertices[i].x;
-        if (vertices[i].y < min_y)	min_y = vertices[i].y;
-        if (vertices[i].z < min_z)	min_z = vertices[i].z;
-    }
-
-    box.x1 = max_x;
-    box.y1 = max_y;
-    box.z1 = max_z;
-    box.x2 = min_x;
-    box.y2 = min_y;
-    box.z2 = min_z;
-}
-
+/// \description
+/// This function copmutes the centroid of a number of 3d-points
+/// \param points
+/// \return vec, the centroid
 vec PointCloud::getCentroid(const VecArray &points) {
     vec center(0,0,0);
     for (const auto &i : points) {
@@ -725,10 +762,20 @@ vec PointCloud::getCentroid(const VecArray &points) {
     return center/(float)points.size();
 }
 
+/// \description
+/// This function computes the dot product of two vec points
+/// \param v1
+/// \param v2
+/// \return double, the result
 double PointCloud::dot_product(const vec &v1, const vec &v2) {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
+/// \description
+/// This function computes the dot product of two vec points
+/// \param v1
+/// \param v2
+/// \return vec, the result
 vec PointCloud::cross_product(const vec &v1, const vec &v2) {
     vec res;
     res.x = v1.y * v2.z - v1.z * v2.y;
@@ -737,6 +784,10 @@ vec PointCloud::cross_product(const vec &v1, const vec &v2) {
     return res;
 }
 
+/// \description
+/// This function normalize the values of vector to range [0,1]
+/// \param values
+/// \return void
 template <typename T>
 void PointCloud::normalize(vector<T> &values) {
     T min_value = min(values);
@@ -747,11 +798,19 @@ void PointCloud::normalize(vector<T> &values) {
     }
 }
 
+/// \description
+/// This function computes the sum of vector
+/// \param vector
+/// \return float, the sum
 float PointCloud::vectorSum(const vector<float> &v) {
     float initial_sum{0.0f};
     return accumulate(v.begin(), v.end(), initial_sum);
 }
 
+/// \description
+/// This function finds the min of vector
+/// \param values
+/// \return T, the min
 template <typename T>
 T PointCloud::min(const vector<T> &values) {
     T min_value{values.at(0)};
@@ -762,6 +821,10 @@ T PointCloud::min(const vector<T> &values) {
     return min_value;
 }
 
+/// \description
+/// This function finds the min of vector
+/// \param values
+/// \return T, the max
 template <typename T>
 T PointCloud::max(const vector<T> &values) {
     T max_value{values.at(0)};
@@ -772,6 +835,11 @@ T PointCloud::max(const vector<T> &values) {
     return max_value;
 }
 
+/// \description
+/// This function checks if a vector contains one specific value
+/// \param values
+/// \param value
+/// \return bool, true if the value is contained in the vector, false otherwise
 template<typename T>
 bool PointCloud::contains(const vector<T> &values, const T value) {
     for (int i=0; i<values.size(); i++) {
@@ -781,7 +849,27 @@ bool PointCloud::contains(const vector<T> &values, const T value) {
     return false;
 }
 
-bool PointCloud::contains(const vector<vec> &values, const vec value) {
+
+/// \description
+/// This function checks if a point is equal to zero
+/// \param vec
+/// \return bool, true if the point is zero, false otherwise
+bool PointCloud::zeroPoint(const vec p) {
+    return ( (p.x == 0.0f) && (p.y == 0.0f) && (p.z == 0.0f) );
+}
+
+/// \description
+/// This function computes the euclidean distacne of two vec points
+/// \param vec
+/// \param vec
+/// \return float, the distance
+float PointCloud::getDistance(const vec p1, const vec p2) {
+    return float(sqrt(pow(p1.x - p2.x,2) + pow(p1.y - p2.y,2) + pow(p1.z - p2.z,2)));
+}
+
+/// not used function
+/*
+ * bool PointCloud::contains(const vector<vec> &values, const vec value) {
     for (int i=0; i<values.size(); i++) {
         if ((values[i].x == value.x) && (values[i].y == value.y) && (values[i].z == value.z))
             return true;
@@ -789,13 +877,6 @@ bool PointCloud::contains(const vector<vec> &values, const vec value) {
     return false;
 }
 
-bool PointCloud::zeroPoint(const vec p) {
-    return ( (p.x == 0.0f) && (p.y == 0.0f) && (p.z == 0.0f) );
-}
-
-
-/// not used function
-/*
 vec PointCloud::convertTo3d(const Mat &image, const Mat &depth_image, Point2d &point)
 {
     //TODO replace depth_image with class variable
@@ -881,6 +962,73 @@ int PointCloud::getRgbdId(const ImageRGBD &image)
 //        }
 //    }
 //}
+
+ //void PointCloud::segmentation3(Mesh*& mesh, vector<PointFeatures> pointFeatures, vector<VecArray> &segments) {
+//    VecArray region;
+//
+//    int index, index2, start;
+//    for (int i=0; i<pointFeatures.size(); i++) {
+//        if (pointFeatures[i].curvature > 0.3) {
+//            region.clear();
+//
+//            start = i;
+//
+//            index = start;
+//            vector<int> seen;
+//            float curv;
+//            for (int l=0; l<20000; l++) {
+//
+//                curv = -1.0f;
+//                for (int j=0; j<pointFeatures[index].neighborVertices.size(); j++) {
+//
+//                    bool flag{false};
+//                    for (int k=0; k<seen.size(); k++) {
+//                        if (pointFeatures[index].neighborVertices[j] == seen[k])
+//                            flag = true;
+//                    }
+//
+//                    if (pointFeatures[pointFeatures[index].neighborVertices[j]].curvature > curv && flag == false) {
+//                        curv = pointFeatures[pointFeatures[index].neighborVertices[j]].curvature;
+//                        start = pointFeatures[index].neighborVertices[j];
+//                        seen.emplace_back(start);
+//                    }
+//                }
+//
+//                index = start;
+//                region.emplace_back(pointFeatures[start].coordinates);
+//            }
+//            segments.emplace_back(region);
+//        }
+//    }
+//}
+//void PointCloud::segmentation4(const vector<PointFeatures> pointFeatures, VecArray &region, double const &t, int &start, vector<int> &seen, int &iter) {
+//    if (iter > 300)
+//        return;
+//    else
+//        iter++;
+//
+//    int index2;
+//    for (int j=0; j<pointFeatures[start].neighborVertices.size(); j++) {
+//
+//        index2 = pointFeatures[start].neighborVertices[j];
+//
+//        if (getAngle(pointFeatures[index2].normal, pointFeatures[start].normal) < t) {
+//
+//            region.emplace_back(pointFeatures[index2].coordinates);
+//
+//            bool flag{false};
+//            for( int m=0; m<seen.size(); m++) {
+//                if (seen[m] == index2)
+//                    flag = true;
+//            }
+//            if (!flag) {
+//                seen.emplace_back(index2);
+//                segmentation4(pointFeatures, region, t, index2, seen, iter);
+//            }
+//        }
+//    }
+//}
+
 
 //void PointCloud::findAdjacentPoints(const Mat &l_frame_rgb, const Mat &r_frame_rgb, const Mat &l_frame_rgbd, const Mat &r_frame_rgbd, vector< pair <Point3d,Vec3b>> &l_points, vector< pair <Point3d,Vec3b>> &r_points) {
 //    // the parameter slide show how many pixels to slide the window in each direction
@@ -1111,6 +1259,16 @@ void PointCloud::kNearest2(const VecArray &src, VecArray &nearestPoints, vector<
 
     const float KDTree_knn_time = vvr::getSeconds() - t;
 //    echo(KDTree_knn_time);
+}
+
+
+//returns the inverse cosine of a number (argument) in degrees.
+// The value which is returned by the acos() function always lies between –\pi to +\pi
+double PointCloud::getAngle(const vec &p1, const vec &p2) {
+    double numerator = dot_product(p1, p2);
+    double denominator = p1.Length()*p2.Length();
+    double result = acos(numerator/denominator);
+    return result * 180.0 / M_PI;
 }
 
 //void PointCloud::validate(int &top_col, int &top_row, int &width, int &height) {
@@ -2813,10 +2971,6 @@ void PointCloud::setNumberOfNeighbours(int value) {
 
 float PointCloud::getLuminance(Vec3b rgb) {
     return float(0.2126 * rgb[2] + 0.7152 * rgb[1] + 0.0722 * rgb[0]);
-}
-
-float PointCloud::getDistance(const vec p1, const vec p2) {
-    return float(sqrt(pow(p1.x - p2.x,2) + pow(p1.y - p2.y,2) + pow(p1.z - p2.z,2)));
 }
 
 float PointCloud::getNorm(const vec p1, const vec p2, int index) {

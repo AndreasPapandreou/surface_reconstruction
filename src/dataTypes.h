@@ -9,6 +9,10 @@
 using namespace std;
 using namespace cv;
 
+/// ********************************************************************************************************************
+/// this header file handles the convertion of variables from data type A to data type B
+/// ********************************************************************************************************************
+
 namespace dataTypes {
     void convertToEigenMat(const vector<vec> &points, Eigen::MatrixXf &mat) {
         int size = points.size();

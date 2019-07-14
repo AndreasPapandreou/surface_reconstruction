@@ -5,14 +5,9 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-//    int i;
-//    cout << "Please choose the dataset : \n";
-//    cout << "Type 1 for MEETING_SMALL_1 : \n";
-//    cin >> i;
-//    TODO add checks for user's input
-
+    /// there are two datasets : type 0 for the meeting_small_1 and 1 for desk_1
+    /// all of our experiments has been conducted to the firsτ dataset, so we set i to 0
     int i{0};
-
     try {
         return vvr::mainLoop(argc, argv, new surfaceReconstruction(i));
     }

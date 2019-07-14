@@ -15,8 +15,8 @@ KDTree::KDTree(VecArray &pts)
 //    m_depth = makeNode(m_root, pts, indices, 0);
 
     const float KDTree_construction_time = vvr::getSeconds() - t;
-    echo(KDTree_construction_time);
-    echo(m_depth);
+//    echo(KDTree_construction_time);
+//    echo(m_depth);
 }
 
 KDTree::~KDTree()
@@ -68,6 +68,8 @@ int KDTree::makeNode(KDNode *node, VecArray &pts, const int level)
     }
 }
 
+/// this function creates the kdtree and also stores the indices for all points in the vector, given as input, for each
+/// leaf in the tree
 //int KDTree::makeNode(KDNode *node, VecArray &pts, std::vector<int> old_indices, const int level)
 //{
 //
@@ -159,7 +161,6 @@ void KDTree::kNearest(const int k, const vec &test_pt, const KDNode *root, const
     if(!root) return;
 
     //!Distance
-//    const float d = test_pt.Distance(root->split_point);
     const float d = test_pt.DistanceSq(root->split_point);
     const float d_split = root->split_point.ptr()[root->axis] - test_pt.ptr()[root->axis];
     const bool right_of_split = d_split <= 0;
@@ -184,7 +185,6 @@ void KDTree::kNearest(const int k, const vec &test_pt, const KDNode *root, const
 
     // pruning
     if (SQUARE(d_split) >= *best_dist) return;
-//    if ((d_split) >= *best_dist) return;
 
     kNearest(k, test_pt, right_of_split ? root->child_left : root->child_right, knn, best_dist);
 }

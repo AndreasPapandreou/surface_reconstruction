@@ -20,7 +20,7 @@ struct KDNode
 };
 
 /**
- * A node of a KD-Tree
+ * A node of a KD-Tree if i need to keep the indices of each point inside the tree
  */
 //struct KDNode
 //{
@@ -48,14 +48,11 @@ public:
 
 public:
     static int makeNode(KDNode *node, VecArray &pts, const int level);
-//    static int makeNode(KDNode *node, VecArray &pts, std::vector<int> indices, const int level);
+    ///if i need to keep the indices of each point inside the tree
+    //static int makeNode(KDNode *node, VecArray &pts, std::vector<int> indices, const int level);
     static void getNodesOfLevel(KDNode *node, std::vector<KDNode*> &nodes, int level);
     void kNearest(const int k, const vec& test_pt, const KDNode* root, const KDNode **knn, float *best_dist);
     static std::vector<size_t> sort_indexes(const std::vector<float3> &v, const int axis);
-//    float findMinRec(KDNode* root, int d, unsigned depth);
-//    float findMin(KDNode* root, int d);
-//    float min(float v1, float v2, float v3);
-//    float min(float v1, float v2);
     KDNode* deleteNodeRec(KDNode *root, vec point, int depth);
     KDNode* deleteNode(KDNode *root, vec point);
     KDNode* minNode(KDNode *x, KDNode *y, KDNode *z, int d);
