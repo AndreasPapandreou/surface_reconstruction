@@ -1,0 +1,6 @@
+[submodule "MathGeoLib"]
+	path = MathGeoLib
+	url = https://github.com/juj/MathGeoLib.git
+[submodule "GLFW"]
+	path = GLFW
+	url = https://github.com/glfw/glfw
