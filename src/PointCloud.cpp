@@ -172,7 +172,7 @@ void PointCloud::sobel(const Mat &img, Mat &new_img) {
     GaussianBlur( img, img, Size(3,3), 0, 0, BORDER_DEFAULT );
 
     /// Convert it to gray
-    cvtColor( img, img_gray, CV_BGR2GRAY );
+    cvtColor( img, img_gray, cv::COLOR_BGR2GRAY );
 
     /// Create window
 //    namedWindow( window_name, CV_WINDOW_AUTOSIZE );
@@ -289,22 +289,25 @@ vector<int>* PointCloud::triangulateMesh(const std::vector<vec>& vertices, Mesh*
     for (auto &d : vertices) modelVerts.push_back(d);
 
     CameraConstants camera;
+
     int size = (camera.image_width - 1)*(camera.image_height - 1);
 
     for (int i = 0; i < size; i++) {
         tris.emplace_back(&modelVerts, i, i + 1 + camera.image_width, i + camera.image_width);
+//        cout << "size = " << tris.size() << endl;
 
         if(abs(modelVerts[i].z - modelVerts[i + 1 + camera.image_width].z) <= threshold &&
             abs(modelVerts[i].z - modelVerts[i + camera.image_width].z) <= threshold &&
             abs(modelVerts[i + camera.image_width].z - modelVerts[i + 1 + camera.image_width].z) <= threshold) {}
-        else {tris.erase(tris.begin() + tris.size());}
+        else {tris.erase(tris.begin() + tris.size() - 1);}
 
         tris.emplace_back(&modelVerts, i, i + 1, i + 1 + camera.image_width);
 
         if(abs(modelVerts[i].z - modelVerts[i + 1].z) <= threshold &&
             abs(modelVerts[i].z - modelVerts[i + 1 + camera.image_width].z) <= threshold &&
             abs(modelVerts[i + 1].z - modelVerts[i + 1 + camera.image_width].z) <= threshold) {}
-        else {tris.erase(tris.begin() + tris.size());}
+        else {tris.erase(tris.begin() + tris.size() - 1);}
+
     }
 
     size = mesh->getTriangles().size();
