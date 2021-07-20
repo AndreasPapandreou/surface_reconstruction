@@ -5,7 +5,9 @@ This repository contains an assignment in the Computational Geometry course that
 
 ## Some results
 **3D reconstruction using ICP for 15 frames**
+
 ![alt text](https://github.com/AndreasPapandreou/surface_reconstruction/blob/master/res/im1.png?raw=true)
 
 **Segment 3D mesh object**
+
 ![alt text](https://github.com/AndreasPapandreou/surface_reconstruction/blob/master/res/im2.png?raw=true)
