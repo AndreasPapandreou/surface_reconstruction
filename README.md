@@ -30,8 +30,6 @@ The next GUI will be shown that allows you to run each task separately. The wind
 
 **Segment 3D mesh object**
 
-![alt text](https://github.com/AndreasPapandreou/surface_reconstruction/blob/master/res/segA.png?raw=true)
-
 ![alt text](https://github.com/AndreasPapandreou/surface_reconstruction/blob/master/res/plane.png?raw=true)
 
 ![alt text](https://github.com/AndreasPapandreou/surface_reconstruction/blob/master/res/im2.png?raw=true)
